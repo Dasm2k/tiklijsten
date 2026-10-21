@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% block title %}BrandweerOnline - Brandweerzone Rivierenland{% endblock %}
+{% block main_class %}{% endblock %}
+{% block body %}
+    <section class="portaal-hero py-5 mb-5">
+        <div class="container text-center">
+            <img src="{{ asset('img/logo.png') }}" alt="Logo Brandweerzone Rivierenland" class="mb-3">
+            <h1 class="display-6 fw-semibold">Brandweerzone Rivierenland</h1>
+            <p class="lead mb-0 opacity-75">Kies je post of afdeling om aan te melden.</p>
+        </div>
+    </section>
+    <div class="container pb-5">
+        <div class="row g-4 justify-content-center">
+            {% for afdeling in afdelingen %}
+                <div class="col-sm-6 col-lg-4">
+                    <a href="{{ path('app_login', {afdeling: afdeling.slug}) }}" class="card afdeling-kaart h-100 text-decoration-none">
+                        <div class="card-body d-flex align-items-center gap-3 p-4">
+                            <i class="bi bi-fire fs-1 text-danger"></i>
+                            <div>
+                                <h2 class="h5 mb-1 text-body">{{ afdeling.naam }}</h2>
+                                <span class="text-body-secondary small">{{ afdeling.titel }}</span>
+                            </div>
+                            <i class="bi bi-chevron-right ms-auto text-body-secondary"></i>
+                        </div>
+                    </a>
+                </div>
+            {% else %}
+                <div class="col-md-8"><div class="alert alert-info">Er zijn nog geen afdelingen. Maak er een aan met <code>php bin/console app:afdeling:nieuw</code> of importeer de oude gegevens met <code>app:import-legacy</code>.</div></div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

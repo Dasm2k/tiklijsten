@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <h1 class="h3 mb-3">{{ lijst.id ? 'Mailinglijst ' ~ lijst.naam : 'Nieuwe mailinglijst' }}</h1>
+    {{ form_start(form) }}
+    <div class="card mb-3"><div class="card-body">
+        <div class="row">
+            <div class="col-md-4">{{ form_row(form.naam) }}</div>
+            <div class="col-md-8">{{ form_row(form.omschrijving) }}</div>
+            <div class="col-md-4">{{ form_row(form.peloton) }}</div>
+            <div class="col-md-4 pt-md-4">{{ form_row(form.alleLijsten) }}</div>
+            <div class="col-md-4 pt-md-4">{{ form_row(form.foutmeldingen) }}</div>
+        </div>
+    </div></div>
+    <div class="card mb-3">
+        <div class="card-header fw-semibold">Leden <span class="text-body-secondary fw-normal small">(personen zonder e-mailadres kunnen niet aangeduid worden)</span></div>
+        <div class="card-body leden-keuze">{{ form_widget(form.leden) }}</div>
+    </div>
+    {{ form_rest(form) }}
+    <button class="btn btn-primary"><i class="bi bi-save"></i> Opslaan</button>
+    <a class="btn btn-outline-secondary" href="{{ path('app_mailing_index') }}">Annuleren</a>
+    {{ form_end(form) }}
+{% endblock %}

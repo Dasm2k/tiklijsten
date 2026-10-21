@@ -1,0 +1,59 @@
+security:
+    password_hashers:
+        legacy_md5:
+            id: App\Security\LegacyMd5PasswordHasher
+        App\Entity\Persoon:
+            algorithm: bcrypt
+            cost: 12
+            # Codes uit de oude toepassing zijn md5; bij de eerste geslaagde login
+            # (of tikking) worden ze automatisch omgezet naar bcrypt.
+            migrate_from:
+                - legacy_md5
+
+    providers:
+        persoon_provider:
+            id: App\Security\PersoonProvider
+
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_BEHEER]
+        ROLE_BEHEER: [ROLE_ARCHIEF]
+        ROLE_ARCHIEF: [ROLE_PERSONEEL]
+        ROLE_PERSONEEL: [ROLE_LIJSTEN]
+        ROLE_LIJSTEN: [ROLE_FOUTEN]
+        ROLE_FOUTEN: [ROLE_LID]
+        ROLE_LID: [ROLE_USER]
+        ROLE_POST: [ROLE_USER]
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|css|img|js)/
+            security: false
+        main:
+            lazy: true
+            provider: persoon_provider
+            user_checker: App\Security\PersoonChecker
+            custom_authenticators:
+                - App\Security\LoginAuthenticator
+            entry_point: App\Security\LoginAuthenticator
+            logout:
+                path: app_logout
+                target: app_portaal
+                enable_csrf: true
+            # 4-cijferige codes: beperk het aantal pogingen per tiknummer/IP.
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+
+    access_control:
+        - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
+
+when@test:
+    security:
+        password_hashers:
+            App\Entity\Persoon:
+                algorithm: bcrypt
+                cost: 4
+                migrate_from:
+                    - legacy_md5

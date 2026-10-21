@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% set huidige_afdeling = app.user ? app.user.afdeling : null %}
+    <title>{% block title %}{{ huidige_afdeling ? huidige_afdeling.titel : app_naam }}{% endblock %}</title>
+    <link rel="icon" href="{{ asset('img/logo.png') }}">
+    <script>document.documentElement.setAttribute('data-bs-theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');</script>
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+    {% block stylesheets %}{% endblock %}
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+</head>
+<body class="bg-body-tertiary">
+{% block navbar %}
+    {% if app.user %}
+        {% include '_navbar.html.twig' %}
+    {% endif %}
+{% endblock %}
+
+<main class="{% block main_class %}container-xxl py-4{% endblock %}">
+    {% for type, berichten in app.flashes(['success', 'danger', 'warning', 'info']) %}
+        {% for bericht in berichten %}
+            <div class="alert alert-{{ type }} alert-dismissible fade show" role="alert">
+                {{ bericht }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sluiten"></button>
+            </div>
+        {% endfor %}
+    {% endfor %}
+    {% block body %}{% endblock %}
+</main>
+
+{% block footer %}
+    <footer class="footer-bw text-body-secondary text-center py-3 geen-print">
+        {{ huidige_afdeling ? huidige_afdeling.footer : '© Brandweerzone Rivierenland' }}
+    </footer>
+{% endblock %}
+
+<script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+{% block javascripts %}{% endblock %}
+<script src="{{ asset('js/app.js') }}"></script>
+</body>
+</html>

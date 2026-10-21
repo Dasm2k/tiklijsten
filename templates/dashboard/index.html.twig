@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% import '_macros.html.twig' as m %}
+{% block body %}
+    {% set afd = app.user.afdeling %}
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0">Welkom, {{ app.user.voornaam }}</h1>
+            <div class="text-body-secondary">{{ afd.naam }}</div>
+        </div>
+    </div>
+
+    {% set tegels = [] %}
+    {% if is_granted('ROLE_POST') or is_granted('ROLE_ADMIN') %}{% set tegels = tegels|merge([{r: 'app_tik_index', i: 'clipboard-check', t: 'Lijst maken & tikken'}]) %}{% endif %}
+    {% if is_granted('ROLE_LID') %}{% set tegels = tegels|merge([{r: 'app_prestaties', i: 'stopwatch', t: is_granted('ROLE_PERSONEEL') ? 'Prestaties' : 'Mijn prestaties'}]) %}{% endif %}
+    {% if is_granted('ROLE_LIJSTEN') %}{% set tegels = tegels|merge([{r: 'app_lijst_index', i: 'list-check', t: 'Aanwezigheden'}]) %}{% endif %}
+    {% if is_granted('ROLE_PERSONEEL') %}{% set tegels = tegels|merge([{r: 'app_personeel_index', i: 'people', t: 'Personeel'}]) %}{% endif %}
+    {% if (is_granted('ROLE_LID') or is_granted('ROLE_POST')) and afd.foutmeldingenActief %}{% set tegels = tegels|merge([{r: is_granted('ROLE_POST') ? 'app_fout_post_aanmelden' : 'app_fout_index', i: 'wrench-adjustable', t: 'Foutmeldingen'}]) %}{% endif %}
+    {% set tegels = tegels|merge([{r: 'app_statistieken', i: 'bar-chart', t: 'Statistieken'}]) %}
+    {% if is_granted('ROLE_BEHEER') %}{% set tegels = tegels|merge([{r: 'app_mailing_index', i: 'envelope', t: 'Mailinglijsten'}, {r: 'app_instellingen', i: 'gear', t: 'Instellingen'}]) %}{% endif %}
+
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-6 g-3 mb-4">
+        {% for tegel in tegels %}
+            <div class="col"><a class="tegel" href="{{ path(tegel.r) }}"><i class="bi bi-{{ tegel.i }}"></i><span>{{ tegel.t }}</span></a></div>
+        {% endfor %}
+    </div>
+
+    {% if open is not empty %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning-subtle"><i class="bi bi-hourglass-split"></i> Open lijsten</div>
+            <div class="list-group list-group-flush">
+                {% for lijst in open %}
+                    <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ path('app_tik_lijst', {id: lijst.id}) }}">
+                        <span><strong>{{ lijst.label }}</strong> · {{ lijst.interventieType ? lijst.interventieType.naam }} te {{ lijst.gemeente ? lijst.gemeente.naam }}</span>
+                        <span class="text-body-secondary tabular">{{ lijst.start|date('d/m/Y H:i') }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header fw-semibold">Laatste interventies</div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th></th><th>Lijst</th><th>Post</th><th>Datum</th><th>Peloton</th><th>Gemeente</th><th>Interventie</th><th></th></tr></thead>
+                <tbody>
+                {% for lijst in laatste %}
+                    <tr {% if lijst.info %}title="{{ lijst.info }}"{% endif %}>
+                        <td class="text-center" style="width:2rem">{% if lijst.id in met_tikking %}<i class="bi bi-flag-fill text-success" title="Je hebt hiervoor ingetikt"></i>{% endif %}</td>
+                        <td>{% if is_granted('ROLE_LIJSTEN') %}<a href="{{ path('app_lijst_toon', {id: lijst.id}) }}">{{ lijst.label }}</a>{% else %}{{ lijst.label }}{% endif %}</td>
+                        <td>{{ lijst.post ? lijst.post.naam }}</td>
+                        <td class="tabular">{{ lijst.start|date('d/m/Y H:i') }}</td>
+                        <td>{{ lijst.peloton|peloton }}</td>
+                        <td>{{ lijst.gemeente ? lijst.gemeente.naam }}</td>
+                        <td>{{ lijst.interventieType ? lijst.interventieType.naam }}</td>
+                        <td class="text-end">
+                            {{ m.lijst_status(lijst) }}
+                            {% if is_granted('ROLE_POST') or is_granted('ROLE_PERSONEEL') %}
+                                <a class="btn btn-sm btn-link" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}" title="Afdrukken"><i class="bi bi-printer"></i></a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="text-body-secondary text-center py-4">Nog geen interventies.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

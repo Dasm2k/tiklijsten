@@ -1,0 +1,19 @@
+{% extends 'emails/_layout.html.twig' %}
+{% block inhoud %}
+    <h2 style="margin-top:0">Aanwezigheidslijst {{ lijst.label }}</h2>
+    <p style="margin:0 0 4px">{{ lijst.peloton|peloton|capitalize }} · {{ lijst.start|date('d/m/Y H:i') }}</p>
+    <p style="margin:0 0 4px">{{ lijst.interventieType ? lijst.interventieType.naam }} te {{ lijst.gemeente ? lijst.gemeente.naam }}</p>
+    {% if lijst.info %}<p style="margin:0 0 4px">Info: {{ lijst.info }}</p>{% endif %}
+    <p>Er is een interventielijst afgesloten. <a href="{{ url('app_lijst_toon', {id: lijst.id}) }}" style="color:#b3151b">Bekijk de lijst online</a>.</p>
+    <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 13px;">
+        <tr style="background:#f8f9fa; text-align:left;"><th>Nr.</th><th>Zone nr.</th><th>Post</th><th>Rang</th><th>Naam</th><th>Begin</th><th>Einde</th><th>Prestatie</th></tr>
+        {% for t in tikkingen %}
+            {% set p = t.persoon %}
+            <tr style="border-top:1px solid #dee2e6;{{ p.beroeps ? ' font-weight:bold; font-style:italic;' }}">
+                <td>{{ p.tiknummer }}</td><td>{{ p.zonenummer }}</td><td>{{ p.post ? p.post.code }}</td><td>{{ p.rang ? p.rang.kort }}</td>
+                <td>{{ p.naam }} {{ p.voornaam }}</td><td>{{ t.start|date('d/m/Y H:i') }}</td><td>{{ t.einde|date('d/m/Y H:i') }}</td><td>{{ t.prestatie|duur }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    <p><strong>Aanwezigen totaal: {{ tikkingen|length }}</strong></p>
+{% endblock %}

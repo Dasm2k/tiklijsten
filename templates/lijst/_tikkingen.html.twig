@@ -1,0 +1,29 @@
+<table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Nr.</th><th>Zone nr.</th><th>Post</th><th>Rang</th><th>Naam</th><th>Begin</th><th>Einde</th><th>Prestatie</th>{% if verwijderbaar|default(false) %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for t in tikkingen %}
+        {% set p = t.persoon %}
+        <tr class="{{ p.beroeps ? 'beroeps' }}">
+            <td class="tabular">{{ p.tiknummer }}</td>
+            <td class="tabular">{{ p.zonenummer }}</td>
+            <td>{{ p.post ? p.post.code }}</td>
+            <td>{{ p.rang ? p.rang.kort }}</td>
+            <td>{{ p.naam }} {{ p.voornaam }}</td>
+            <td class="tabular">{{ t.start|date('d/m/Y H:i') }}</td>
+            <td class="tabular">{{ t.einde|date('d/m/Y H:i') }}</td>
+            <td class="tabular">{{ t.prestatie|duur }}</td>
+            {% if verwijderbaar|default(false) %}
+                <td class="text-end">
+                    <form method="post" action="{{ path('app_lijst_tikking_verwijderen', {id: t.lijst.id, tikking: t.id}) }}" data-bevestig="Tikking van {{ p.voornaam }} {{ p.naam }} verwijderen?">
+                        <input type="hidden" name="_token" value="{{ csrf_token('weg' ~ t.id) }}">
+                        <button class="btn btn-sm btn-link text-danger" title="Verwijderen"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            {% endif %}
+        </tr>
+    {% else %}
+        <tr><td colspan="9" class="text-center text-body-secondary py-3">Niemand ingetikt.</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="9">Aanwezigen totaal: {{ tikkingen|length }}</th></tr></tfoot>
+</table>

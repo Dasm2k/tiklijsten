@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% import '_macros.html.twig' as m %}
+{% block body %}
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Foutmeldingen</h1>
+        <div class="d-flex gap-2">
+            {% if kan_filteren %}
+                <a class="btn btn-outline-secondary" href="{{ path('app_fout_index', enkel_eigen ? {alle: 1} : {}) }}"><i class="bi bi-funnel"></i> {{ enkel_eigen ? 'Alle meldingen tonen' : 'Enkel mijn opvolging' }}</a>
+            {% endif %}
+            <a class="btn btn-primary" href="{{ path('app_fout_nieuw') }}"><i class="bi bi-plus-circle"></i> Nieuwe foutmelding</a>
+        </div>
+    </div>
+    <div class="list-group">
+        {% for fout in fouten %}
+            <a class="list-group-item list-group-item-action py-3" href="{{ path('app_fout_toon', {id: fout.id}) }}">
+                <div class="d-flex justify-content-between gap-3">
+                    <div class="text-truncate">
+                        <div>{{ m.status(fout.status) }} <span class="text-body-secondary small">{{ fout.aangemaakt|date('d/m/Y') }}</span> <strong>{{ fout.wat }}</strong></div>
+                        <div class="small text-body-secondary text-truncate">{{ fout.probleem|length > 140 ? fout.probleem|slice(0, 140) ~ '…' : fout.probleem }}</div>
+                    </div>
+                    <div class="small text-nowrap text-end">
+                        <div>Gemeld: <strong>{{ fout.melder ? fout.melder.voornaam ~ ' ' ~ fout.melder.naam : '-' }}</strong></div>
+                        <div>Opvolging: <strong>{{ fout.opvolger ? fout.opvolger.voornaam ~ ' ' ~ fout.opvolger.naam : '-' }}</strong></div>
+                    </div>
+                </div>
+            </a>
+        {% else %}
+            <div class="list-group-item text-center text-body-secondary py-5">Er zijn op dit ogenblik geen foutmeldingen{{ enkel_eigen ? ' die jij opvolgt' }}.</div>
+        {% endfor %}
+    </div>
+    <p class="small text-body-secondary mt-2">Afgewerkte en definitief buitendienst gestelde meldingen verdwijnen een dag na het afsluiten.</p>
+{% endblock %}

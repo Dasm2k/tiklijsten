@@ -1,0 +1,29 @@
+{% macro paginering(pagina, paginas, route, params = {}) %}
+    {% if paginas > 1 %}
+        {% set van = max(1, pagina - 3) %}
+        {% set tot = min(paginas, pagina + 3) %}
+        <nav aria-label="Paginering" class="geen-print">
+            <ul class="pagination pagination-sm flex-wrap">
+                <li class="page-item {{ pagina <= 1 ? 'disabled' }}"><a class="page-link" href="{{ path(route, params|merge({p: pagina - 1})) }}">&laquo;</a></li>
+                {% if van > 1 %}<li class="page-item"><a class="page-link" href="{{ path(route, params|merge({p: 1})) }}">1</a></li>{% if van > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}{% endif %}
+                {% for i in van..tot %}
+                    <li class="page-item {{ i == pagina ? 'active' }}"><a class="page-link" href="{{ path(route, params|merge({p: i})) }}">{{ i }}</a></li>
+                {% endfor %}
+                {% if tot < paginas %}{% if tot < paginas - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}<li class="page-item"><a class="page-link" href="{{ path(route, params|merge({p: paginas})) }}">{{ paginas }}</a></li>{% endif %}
+                <li class="page-item {{ pagina >= paginas ? 'disabled' }}"><a class="page-link" href="{{ path(route, params|merge({p: pagina + 1})) }}">&raquo;</a></li>
+            </ul>
+        </nav>
+    {% endif %}
+{% endmacro %}
+
+{% macro status(status) %}
+    <span class="badge text-bg-{{ status.kleur }}">{{ status.label }}</span>
+{% endmacro %}
+
+{% macro persoon(p) %}{% if p %}{{ p.rang ? p.rang.kort ~ ' ' }}{{ p.naam }} {{ p.voornaam }}{% else %}<span class="text-body-secondary">n.v.t.</span>{% endif %}{% endmacro %}
+
+{% macro lijst_status(lijst) %}
+    {% if lijst.gearchiveerd %}<span class="badge text-bg-secondary">Archief</span>
+    {% elseif lijst.afgesloten %}<span class="badge text-bg-light border">Afgesloten</span>
+    {% else %}<span class="badge text-bg-warning">Open</span>{% endif %}
+{% endmacro %}

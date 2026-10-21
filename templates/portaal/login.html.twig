@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block title %}Aanmelden - {{ afdeling.titel }}{% endblock %}
+{% block body %}
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <img src="{{ asset('img/logo.png') }}" alt="" width="96" height="96" class="mb-2">
+                        <h1 class="h4 mb-0">{{ afdeling.titel }}</h1>
+                        <div class="text-body-secondary">Aanmelden</div>
+                    </div>
+                    {% if fout %}
+                        <div class="alert alert-danger">{{ fout.messageKey|trans(fout.messageData, 'security') }}</div>
+                    {% endif %}
+                    <form method="post" action="{{ path('app_login', {afdeling: afdeling.slug}) }}">
+                        <div class="mb-3">
+                            <label for="tiknummer" class="form-label">Tiknummer</label>
+                            <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-lg" id="tiknummer" name="tiknummer" value="{{ laatste_tiknummer }}" required autocomplete="username" {{ laatste_tiknummer ? '' : 'autofocus' }}>
+                        </div>
+                        <div class="mb-4">
+                            <label for="code" class="form-label">Code</label>
+                            <input type="password" inputmode="numeric" class="form-control form-control-lg" id="code" name="code" required autocomplete="current-password" {{ laatste_tiknummer ? 'autofocus' }}>
+                        </div>
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('login') }}">
+                        <button class="btn btn-primary btn-lg w-100" type="submit">Aanmelden</button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-center mt-3"><a href="{{ path('app_portaal') }}"><i class="bi bi-arrow-left"></i> Andere afdeling kiezen</a></p>
+        </div>
+    </div>
+{% endblock %}

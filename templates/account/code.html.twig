@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <h1 class="h3 mb-3">Code wijzigen</h1>
+    <div class="card" style="max-width: 480px"><div class="card-body">
+        <p class="text-body-secondary">Met deze code meld je aan en tik je in op de post.</p>
+        {{ form_start(form) }}
+        {{ form_rest(form) }}
+        <button class="btn btn-primary">Code wijzigen</button>
+        {{ form_end(form) }}
+    </div></div>
+{% endblock %}

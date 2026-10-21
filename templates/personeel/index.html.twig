@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% macro kop(veld, label, sort, richting, inactief) %}
+    {% set nieuw = (sort == veld and richting == 'ASC') ? 'DESC' : 'ASC' %}
+    <a class="link-body-emphasis text-decoration-none" href="{{ path('app_personeel_index', {sort: veld, richting: nieuw, inactief: inactief ? 1 : null}|filter(v => v is not null)) }}">{{ label }}{% if sort == veld %} <i class="bi bi-caret-{{ richting == 'ASC' ? 'up' : 'down' }}-fill small"></i>{% endif %}</a>
+{% endmacro %}
+
+{% block body %}
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Personeel <span class="text-body-secondary fs-5">({{ personen|length }} {{ inactief ? 'inactief' : 'actief' }})</span></h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="{{ path('app_personeel_index', inactief ? {} : {inactief: 1}) }}">{{ inactief ? 'Actief personeel' : 'Inactief personeel' }}</a>
+            <a class="btn btn-primary" href="{{ path('app_personeel_nieuw') }}"><i class="bi bi-person-plus"></i> Nieuw personeelslid</a>
+        </div>
+    </div>
+    {% import _self as k %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>{{ k.kop('tiknummer', 'Nr.', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('zonenummer', 'Zone nr.', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('rang', 'Rang', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('naam', 'Naam', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('peloton', 'Peloton', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('post', 'Post', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('email', 'E-mail', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('rol', 'Rol', sort, richting, inactief) }}</th>
+                    <th>{{ k.kop('gezien', 'Laatst getikt', sort, richting, inactief) }}</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>
+                {% for p in personen %}
+                    <tr class="{{ p.beroeps ? 'beroeps' }}">
+                        <td class="tabular">{{ p.tiknummer }}</td>
+                        <td class="tabular">{{ p.zonenummer }}</td>
+                        <td>{{ p.rang ? p.rang.kort }}</td>
+                        <td>{{ p.naam }} {{ p.voornaam }}</td>
+                        <td>{{ p.peloton|peloton }}</td>
+                        <td>{{ p.post ? p.post.naam }}</td>
+                        <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% endif %}</td>
+                        <td><span class="badge text-bg-light border">{{ p.rol.label }}</span></td>
+                        <td class="tabular small">{{ p.laatstGezien ? p.laatstGezien|date('d/m/Y') }}</td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-link" href="{{ path('app_prestaties', {persoon: p.id}) }}" title="Prestaties"><i class="bi bi-stopwatch"></i></a>
+                            {% if p.rol.gewicht <= app.user.rol.gewicht %}
+                                <a class="btn btn-sm btn-link" href="{{ path('app_personeel_bewerken', {id: p.id}) }}" title="Bewerken"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                            {% if p.id != app.user.id %}
+                                <form method="post" action="{{ path('app_personeel_actief', {id: p.id}) }}" class="d-inline" {% if p.actief %}data-bevestig="{{ p.voornaam }} {{ p.naam }} op inactief zetten?"{% endif %}>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('actief' ~ p.id) }}">
+                                    <button class="btn btn-sm btn-link {{ p.actief ? 'text-danger' : 'text-success' }}" title="{{ p.actief ? 'Op inactief zetten' : 'Opnieuw activeren' }}"><i class="bi bi-{{ p.actief ? 'person-dash' : 'person-check' }}"></i></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-body-secondary mt-2">Vetgedrukt cursief = beroepspersoneel.</p>
+{% endblock %}

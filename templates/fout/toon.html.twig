@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+{% import '_macros.html.twig' as m %}
+{% block body %}
+    <a class="btn btn-link px-0 mb-2" href="{{ path('app_fout_index') }}"><i class="bi bi-arrow-left"></i> Alle foutmeldingen</a>
+    {% include 'fout/_kop.html.twig' %}
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        {% if not fout.status.afgesloten %}
+            <a class="btn btn-outline-info" href="{{ path('app_fout_actie', {id: fout.id, actie: 'extra-info'}) }}"><i class="bi bi-chat-text"></i> Extra info</a>
+            {% if is_granted('ROLE_FOUTEN') %}
+                <form method="post" action="{{ path('app_fout_opnemen', {id: fout.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('opnemen' ~ fout.id) }}">
+                    <button class="btn btn-outline-primary"><i class="bi bi-hand-index"></i> Opnemen</button>
+                </form>
+                <a class="btn btn-outline-success" href="{{ path('app_fout_actie', {id: fout.id, actie: 'afwerken'}) }}"><i class="bi bi-check2-circle"></i> Afgewerkt</a>
+                <a class="btn btn-outline-warning" href="{{ path('app_fout_actie', {id: fout.id, actie: 'buitendienst'}) }}"><i class="bi bi-exclamation-triangle"></i> Buitendienst</a>
+            {% endif %}
+            {% if is_granted('ROLE_PERSONEEL') %}
+                <a class="btn btn-outline-danger" href="{{ path('app_fout_actie', {id: fout.id, actie: 'definitief'}) }}"><i class="bi bi-x-octagon"></i> Definitief buitendienst</a>
+                <a class="btn btn-outline-secondary" href="{{ path('app_fout_toewijzen', {id: fout.id}) }}"><i class="bi bi-person-gear"></i> Toewijzen</a>
+            {% endif %}
+        {% endif %}
+        {% if is_granted('ROLE_PERSONEEL') %}
+            <a class="btn btn-outline-secondary" href="{{ path('app_fout_status', {id: fout.id}) }}"><i class="bi bi-arrow-repeat"></i> Status wijzigen</a>
+        {% endif %}
+    </div>
+
+    <h2 class="h5">Opvolging</h2>
+    {% for b in fout.berichten %}
+        <div class="card mb-2">
+            <div class="card-header small d-flex gap-2 align-items-center">{{ m.status(b.status) }} <strong>{{ b.datum|date('d/m/Y H:i') }}</strong> · {{ b.auteur ? b.auteur.voornaam ~ ' ' ~ b.auteur.naam : '-' }}</div>
+            <div class="card-body" style="white-space: pre-line">{{ b.bericht }}</div>
+        </div>
+    {% else %}
+        <p class="text-body-secondary">Nog geen opvolging.</p>
+    {% endfor %}
+{% endblock %}

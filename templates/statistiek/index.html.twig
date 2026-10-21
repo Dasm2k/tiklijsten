@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <h1 class="h3 mb-3">Statistieken</h1>
+    {% set grafieken = [
+        {id: 'rangen', titel: 'Personeel per rang', data: rangen|map(r => {label: r.rang ?? 'Zonder rang', aantal: r.aantal})},
+        {id: 'pelotons', titel: 'Interventies per peloton', data: pelotons},
+        {id: 'interventies', titel: 'Soort interventie', data: interventies|map(r => {label: r.label ?? 'Onbekend', aantal: r.aantal})},
+        {id: 'gemeenten', titel: 'Gemeente', data: gemeenten|map(r => {label: r.label ?? 'Onbekend', aantal: r.aantal})},
+    ] %}
+    <div class="row g-4">
+        {% for g in grafieken %}
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between"><span class="fw-semibold">{{ g.titel }}</span><span class="text-body-secondary">Totaal {{ g.data|reduce((s, r) => s + r.aantal, 0)|number_format(0, ',', '.') }}</span></div>
+                    <div class="card-body"><canvas id="grafiek-{{ g.id }}" height="260" data-grafiek="{{ g.data|json_encode|e('html_attr') }}"></canvas></div>
+                </div>
+            </div>
+        {% endfor %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold">Interventies per jaar en per peloton</div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 tabular">
+                        <thead><tr><th>Jaar</th>{% for p in peloton_nummers %}<th class="text-end">P{{ p }}</th>{% endfor %}<th class="text-end">Totaal</th></tr></thead>
+                        <tbody>
+                        {% for jaar, rij in per_jaar %}
+                            <tr><td>{{ jaar }}</td>{% for p in peloton_nummers %}<td class="text-end">{{ rij[p] ?? 0 }}</td>{% endfor %}<td class="text-end fw-semibold">{{ rij|reduce((s, v) => s + v, 0) }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block javascripts %}
+    <script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const kleuren = ['#b3151b', '#f2b705', '#1f6feb', '#2da44e', '#8250df', '#e16f24', '#57606a', '#bf3989', '#0a7b83', '#9a6700', '#cf222e', '#116329'];
+            const tekst = getComputedStyle(document.body).getPropertyValue('--bs-body-color');
+            document.querySelectorAll('canvas[data-grafiek]').forEach((canvas) => {
+                const data = JSON.parse(canvas.dataset.grafiek);
+                new Chart(canvas, {
+                    type: 'bar',
+                    data: { labels: data.map((r) => r.label), datasets: [{ data: data.map((r) => r.aantal), backgroundColor: data.map((_, i) => kleuren[i % kleuren.length]) }] },
+                    options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tekst } }, y: { ticks: { color: tekst } } } },
+                });
+            });
+        });
+    </script>
+{% endblock %}

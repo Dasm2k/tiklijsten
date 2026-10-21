@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="UTF-8"><title>{{ email.subject }}</title></head>
+<body style="font-family: Arial, Helvetica, sans-serif; color: #212529; margin: 0; padding: 0; background: #f4f4f4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4; padding: 16px 0;"><tr><td align="center">
+<table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px; background:#ffffff; border-radius:6px; overflow:hidden;">
+    <tr><td style="background:#b3151b; border-bottom:3px solid #f2b705; color:#fff; padding:16px 20px; font-size:18px; font-weight:bold;">{{ afdeling.titel }}</td></tr>
+    <tr><td style="padding: 20px;">{% block inhoud %}{% endblock %}</td></tr>
+    <tr><td style="padding: 12px 20px; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6;">{{ afdeling.footer }} · Deze e-mail werd automatisch verstuurd.</td></tr>
+</table>
+</td></tr></table>
+</body></html>

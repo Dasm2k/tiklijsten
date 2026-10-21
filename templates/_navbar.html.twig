@@ -1,0 +1,65 @@
+{% set route = app.request.attributes.get('_route') %}
+{% set afd = app.user.afdeling %}
+<nav class="navbar navbar-expand-lg navbar-dark navbar-bw geen-print">
+    <div class="container-xxl">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ path('app_dashboard') }}">
+            <img src="{{ asset('img/logo.png') }}" alt="">
+            <span>{{ afd.titel }}</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#hoofdmenu" aria-controls="hoofdmenu" aria-expanded="false" aria-label="Menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="hoofdmenu">
+            <ul class="navbar-nav me-auto">
+                {% if is_granted('ROLE_POST') or is_granted('ROLE_ADMIN') %}
+                    <li class="nav-item"><a class="nav-link {{ route starts with 'app_tik' ? 'active' }}" href="{{ path('app_tik_index') }}"><i class="bi bi-clipboard-check"></i> Tikken</a></li>
+                {% endif %}
+                {% if is_granted('ROLE_LIJSTEN') %}
+                    <li class="nav-item"><a class="nav-link {{ route starts with 'app_lijst' ? 'active' }}" href="{{ path('app_lijst_index') }}"><i class="bi bi-list-check"></i> Lijsten</a></li>
+                {% endif %}
+                {% if is_granted('ROLE_LID') %}
+                    <li class="nav-item"><a class="nav-link {{ route starts with 'app_prestaties' ? 'active' }}" href="{{ path('app_prestaties') }}"><i class="bi bi-stopwatch"></i> Prestaties</a></li>
+                {% endif %}
+                {% if is_granted('ROLE_PERSONEEL') %}
+                    <li class="nav-item"><a class="nav-link {{ route starts with 'app_personeel' ? 'active' }}" href="{{ path('app_personeel_index') }}"><i class="bi bi-people"></i> Personeel</a></li>
+                {% endif %}
+                {% if (is_granted('ROLE_LID') or is_granted('ROLE_POST')) and afd.foutmeldingenActief %}
+                    <li class="nav-item"><a class="nav-link {{ route starts with 'app_fout' ? 'active' }}" href="{{ path(is_granted('ROLE_POST') ? 'app_fout_post_aanmelden' : 'app_fout_index') }}"><i class="bi bi-wrench-adjustable"></i> Foutmeldingen</a></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link {{ route == 'app_statistieken' ? 'active' }}" href="{{ path('app_statistieken') }}"><i class="bi bi-bar-chart"></i> Statistieken</a></li>
+                {% if is_granted('ROLE_BEHEER') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ route starts with 'app_stam' or route starts with 'app_mailing' or route starts with 'app_instellingen' or route starts with 'app_systeemaccount' ? 'active' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Beheer</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ path('app_instellingen') }}">Instellingen &amp; accounts</a></li>
+                            <li><a class="dropdown-item" href="{{ path('app_mailing_index') }}">Mailinglijsten</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'gemeenten'}) }}">Gemeenten</a></li>
+                            <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'interventies'}) }}">Soorten interventie</a></li>
+                            <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'herinneringen'}) }}">Controlevragen afdruk</a></li>
+                            {% if afd.voertuigenActief %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'voertuigen'}) }}">Voertuigen</a></li>
+                                <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'materiaal'}) }}">Materiaal</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i> {{ app.user.voornaam }} {{ app.user.naam }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text small text-body-secondary">{{ afd.naam }} · {{ app.user.rol.label }}</span></li>
+                        {% if is_granted('ROLE_LID') %}
+                            <li><a class="dropdown-item" href="{{ path('app_account_code') }}"><i class="bi bi-key"></i> Code wijzigen</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{{ logout_path() }}"><i class="bi bi-box-arrow-right"></i> Afmelden</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

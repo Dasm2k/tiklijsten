@@ -1,0 +1,12 @@
+twig:
+    file_name_pattern: '*.twig'
+    form_themes: ['bootstrap_5_layout.html.twig']
+    date:
+        format: 'd/m/Y H:i'
+        timezone: 'Europe/Brussels'
+    globals:
+        app_naam: 'BrandweerOnline'
+
+when@test:
+    twig:
+        strict_variables: true

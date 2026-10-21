@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+{% block title %}Foutmeldingen - {{ app.user.afdeling.titel }}{% endblock %}
+{% block body %}
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h1 class="h4"><i class="bi bi-wrench-adjustable"></i> Foutmeldingen</h1>
+                    <p class="text-body-secondary">Meld je aan met je persoonlijke tiknummer en code om een foutmelding in te leggen.</p>
+                    {{ form_start(form) }}
+                    {{ form_errors(form) }}
+                    {{ form_row(form.tiknummer) }}
+                    {{ form_row(form.code) }}
+                    {{ form_rest(form) }}
+                    <button class="btn btn-primary w-100" type="submit">Aanmelden voor een foutmelding</button>
+                    {{ form_end(form) }}
+                    <a class="btn btn-link mt-2 px-0" href="{{ path('app_tik_index') }}"><i class="bi bi-arrow-left"></i> Terug naar tik-pc</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

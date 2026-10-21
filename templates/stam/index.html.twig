@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">{{ cfg.titel }}</h1>
+        <a class="btn btn-primary" href="{{ path('app_stam_nieuw', {soort: soort}) }}"><i class="bi bi-plus"></i> Toevoegen</a>
+    </div>
+    {% if not cfg.verwijderen %}<p class="text-body-secondary small">Deze gegevens worden gebruikt in bestaande lijsten en kunnen daarom niet verwijderd worden. Zet ze op inactief om ze niet meer te kunnen kiezen.</p>{% endif %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>{% for veld, label in cfg.kolommen %}<th>{{ label }}</th>{% endfor %}<th></th></tr></thead>
+                <tbody>
+                {% for item in items %}
+                    <tr>
+                        {% for veld, label in cfg.kolommen %}
+                            {% set w = attribute(item, veld) %}
+                            <td>
+                                {% if w is same as(true) %}<i class="bi bi-check-lg text-success"></i>
+                                {% elseif w is same as(false) %}<i class="bi bi-x-lg text-body-secondary"></i>
+                                {% elseif w is not null and w is not iterable and w.timestamp is defined %}<span class="tabular {{ w < date() ? 'text-danger fw-semibold' }}">{{ w|date('d/m/Y') }}</span>
+                                {% else %}{{ w }}{% endif %}
+                            </td>
+                        {% endfor %}
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-link" href="{{ path('app_stam_bewerken', {soort: soort, id: item.id}) }}"><i class="bi bi-pencil"></i></a>
+                            {% if cfg.verwijderen %}
+                                <form method="post" action="{{ path('app_stam_verwijderen', {soort: soort, id: item.id}) }}" class="d-inline" data-bevestig="Verwijderen?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('weg' ~ soort ~ item.id) }}">
+                                    <button class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="{{ cfg.kolommen|length + 1 }}" class="text-center text-body-secondary py-4">Nog niets toegevoegd.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Mailinglijsten</h1>
+        <a class="btn btn-primary" href="{{ path('app_mailing_nieuw') }}"><i class="bi bi-plus"></i> Nieuwe mailinglijst</a>
+    </div>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Naam</th><th>Functie</th><th>Omschrijving</th><th class="text-end">Leden</th><th></th></tr></thead>
+                <tbody>
+                {% for lijst in lijsten %}
+                    {% set adressen = lijst.emailadressen %}
+                    <tr>
+                        <td class="fw-semibold">{{ lijst.naam }}</td>
+                        <td>
+                            {% if lijst.peloton %}<span class="badge text-bg-primary">Lijsten {{ lijst.peloton|peloton }}</span>{% endif %}
+                            {% if lijst.alleLijsten %}<span class="badge text-bg-primary">Alle lijsten</span>{% endif %}
+                            {% if lijst.foutmeldingen %}<span class="badge text-bg-warning">Foutmeldingen</span>{% endif %}
+                        </td>
+                        <td class="small text-body-secondary">{{ lijst.omschrijving }}</td>
+                        <td class="text-end tabular">{{ lijst.leden|length }}</td>
+                        <td class="text-end text-nowrap">
+                            {% if adressen %}<a class="btn btn-sm btn-link" href="mailto:?bcc={{ adressen|join(',')|url_encode }}" title="Mail sturen"><i class="bi bi-envelope"></i></a>{% endif %}
+                            <a class="btn btn-sm btn-link" href="{{ path('app_mailing_bewerken', {id: lijst.id}) }}" title="Bewerken"><i class="bi bi-pencil"></i></a>
+                            {% if not lijst.systeemlijst %}
+                                <form method="post" action="{{ path('app_mailing_verwijderen', {id: lijst.id}) }}" class="d-inline" data-bevestig="Mailinglijst {{ lijst.naam }} verwijderen?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('weg' ~ lijst.id) }}">
+                                    <button class="btn btn-sm btn-link text-danger" title="Verwijderen"><i class="bi bi-trash"></i></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="text-center text-body-secondary py-4">Nog geen mailinglijsten.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

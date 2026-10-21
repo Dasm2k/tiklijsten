@@ -1,0 +1,15 @@
+{% extends 'emails/_layout.html.twig' %}
+{% block inhoud %}
+    <h2 style="margin-top:0">Foutmelding: {{ fout.wat }}</h2>
+    <p>{{ inleiding }} <a href="{{ url('app_fout_toon', {id: fout.id}) }}" style="color:#b3151b">Bekijk de foutmelding online</a>.</p>
+    <p style="margin:0">Status: <strong>{{ fout.status.label }}</strong></p>
+    <p style="margin:0">Gemeld op {{ fout.aangemaakt|date('d/m/Y') }} door <strong>{{ fout.melder ? fout.melder.voornaam ~ ' ' ~ fout.melder.naam : '-' }}</strong></p>
+    {% if fout.opvolger %}<p style="margin:0">Opvolging: <strong>{{ fout.opvolger.voornaam }} {{ fout.opvolger.naam }}</strong></p>{% endif %}
+    <div style="white-space: pre-line; background:#f8f9fa; padding:12px; margin:12px 0; border-radius:4px;">{{ fout.probleem }}</div>
+    {% for b in fout.berichten %}
+        <div style="border-top:1px solid #dee2e6; padding:8px 0;">
+            <div style="font-size:12px; color:#6c757d;">{{ b.datum|date('d/m/Y H:i') }} · {{ b.status.label }} · {{ b.auteur ? b.auteur.voornaam ~ ' ' ~ b.auteur.naam }}</div>
+            <div style="white-space: pre-line">{{ b.bericht }}</div>
+        </div>
+    {% endfor %}
+{% endblock %}

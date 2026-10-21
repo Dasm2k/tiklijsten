@@ -1,0 +1,15 @@
+{% import '_macros.html.twig' as m %}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h1 class="h4 mb-0">{{ fout.aangemaakt|date('d/m/Y') }} · {{ fout.wat }}</h1>
+        {{ m.status(fout.status) }}
+    </div>
+    <div class="card-body">
+        <div class="small mb-3">
+            {{ fout.type.label }} ·
+            Ingediend door <strong>{{ fout.melder ? fout.melder.voornaam ~ ' ' ~ fout.melder.naam : '-' }}</strong> ·
+            Opvolging door <strong>{{ fout.opvolger ? fout.opvolger.voornaam ~ ' ' ~ fout.opvolger.naam : '-' }}</strong>
+        </div>
+        <div style="white-space: pre-line">{{ fout.probleem }}</div>
+    </div>
+</div>

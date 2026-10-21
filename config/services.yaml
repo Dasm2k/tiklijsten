@@ -1,0 +1,17 @@
+parameters:
+    app.mail_from: '%env(MAILER_FROM)%'
+    app.base_url: '%env(default::APP_BASE_URL)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            string $mailFrom: '%app.mail_from%'
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'

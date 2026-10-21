@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+{% block title %}Lijst {{ lijst.label }} - {{ parent() }}{% endblock %}
+{% block body %}
+    {% if andere_open|length > 1 %}
+        <div class="mb-3 geen-print">
+            <select class="form-select w-auto" onchange="location.href=this.value" aria-label="Andere open lijst">
+                {% for l in andere_open %}
+                    <option value="{{ path('app_tik_lijst', {id: l.id}) }}" {{ l.id == lijst.id ? 'selected' }}>Lijst {{ l.label }} · {{ l.start|date('d/m/Y H:i') }} · {{ l.interventieType ? l.interventieType.naam }} {{ l.gemeente ? l.gemeente.naam }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        {# Kolom 1: gegevens + intikken #}
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Lijst {{ lijst.label }}</span>
+                    {% if lijst.afgesloten %}<span class="badge text-bg-secondary">Afgesloten</span>{% else %}<span class="badge text-bg-warning">Open</span>{% endif %}
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5">Begin</dt><dd class="col-7 tabular">{{ lijst.start|date('d/m/Y H:i') }}</dd>
+                        <dt class="col-5">Tweede begin</dt>
+                        <dd class="col-7 tabular">
+                            {% if lijst.tweedeStart %}
+                                {{ lijst.tweedeStart|date('d/m/Y H:i') }}
+                            {% elseif not lijst.afgesloten %}
+                                <form method="post" action="{{ path('app_tik_tweede_start', {id: lijst.id}) }}" class="d-flex gap-1">
+                                    <input type="datetime-local" name="tweede_start" class="form-control form-control-sm" value="{{ 'now'|date('Y-m-d\\TH:i') }}" required>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('tweede' ~ lijst.id) }}">
+                                    <button class="btn btn-sm btn-outline-secondary" title="Tweede beginuur toevoegen"><i class="bi bi-plus"></i></button>
+                                </form>
+                            {% else %}-{% endif %}
+                        </dd>
+                        <dt class="col-5">Post</dt><dd class="col-7">{{ lijst.post ? lijst.post.naam : '-' }}</dd>
+                        <dt class="col-5">Peloton</dt><dd class="col-7">{{ lijst.peloton|peloton }}</dd>
+                        <dt class="col-5">Gemeente</dt><dd class="col-7">{{ lijst.gemeente ? lijst.gemeente.naam }}</dd>
+                        <dt class="col-5">Interventie</dt><dd class="col-7">{{ lijst.interventieType ? lijst.interventieType.naam }}</dd>
+                        <dt class="col-5">Bevelvoerder</dt><dd class="col-7">{{ lijst.bevelvoerder ? lijst.bevelvoerder.naamMetRang : '-' }}</dd>
+                        {% if lijst.info %}<dt class="col-5">Info</dt><dd class="col-7">{{ lijst.info }}</dd>{% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            {% if not lijst.afgesloten %}
+                <div class="card shadow-sm border-primary mb-4">
+                    <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-person-check"></i> Intikken</div>
+                    <div class="card-body">
+                        <form method="post" action="{{ path('app_tik_in', {id: lijst.id}) }}" autocomplete="off">
+                            {% if lijst.tweedeStart %}
+                                <div class="btn-group w-100 mb-3" role="group" aria-label="Beginuur">
+                                    <input type="radio" class="btn-check" name="beginuur" id="begin1" value="1" checked>
+                                    <label class="btn btn-outline-primary" for="begin1">Begin 1 · {{ lijst.start|date('H:i') }}</label>
+                                    <input type="radio" class="btn-check" name="beginuur" id="begin2" value="2">
+                                    <label class="btn btn-outline-primary" for="begin2">Begin 2 · {{ lijst.tweedeStart|date('H:i') }}</label>
+                                </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label class="form-label" for="tiknummer">Tiknummer</label>
+                                <input class="form-control form-control-lg tik-invoer" id="tiknummer" name="tiknummer" inputmode="numeric" pattern="[0-9]*" required value="{{ laatste_tiknummer }}" {{ laatste_tiknummer ? '' : 'autofocus' }}>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="code">Code</label>
+                                <input class="form-control form-control-lg tik-invoer" id="code" name="code" type="password" inputmode="numeric" required autocomplete="off" {{ laatste_tiknummer ? 'autofocus' }}>
+                            </div>
+                            <input type="hidden" name="_token" value="{{ csrf_token('tik' ~ lijst.id) }}">
+                            <button class="btn btn-primary btn-lg w-100" type="submit">Registreren</button>
+                        </form>
+                    </div>
+                </div>
+
+                <form method="post" action="{{ path('app_tik_afsluiten', {id: lijst.id}) }}" data-bevestig="Lijst {{ lijst.label }} afsluiten? Na het afsluiten kan niemand meer intikken.">
+                    <input type="hidden" name="_token" value="{{ csrf_token('afsluiten' ~ lijst.id) }}">
+                    <button class="btn btn-outline-danger w-100"><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
+                </form>
+            {% else %}
+                <a class="btn btn-outline-secondary w-100" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>
+            {% endif %}
+        </div>
+
+        {# Kolom 2: aanwezigen #}
+        <div class="col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Aanwezigen</span>
+                    <span class="tik-teller">{{ lijst.tikkingen|length }}</span>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for t in lijst.tikkingen %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">{{ t.persoon.naam }} {{ t.persoon.voornaam }}</div>
+                                    <div class="small text-body-secondary tabular">{{ t.start|date('H:i') }} → {{ t.einde|date('H:i') }} · {{ t.prestatie|duur }}</div>
+                                </div>
+                                {% if not lijst.afgesloten and verwijder != t.id %}
+                                    <a class="btn btn-sm btn-link text-danger" href="{{ path('app_tik_lijst', {id: lijst.id, verwijder: t.id}) }}" title="Tikking verwijderen"><i class="bi bi-x-circle"></i></a>
+                                {% endif %}
+                            </div>
+                            {% if verwijder == t.id and not lijst.afgesloten %}
+                                <form method="post" action="{{ path('app_tik_verwijder', {id: lijst.id, tikking: t.id}) }}" class="d-flex gap-2 mt-2">
+                                    <input type="password" name="code" class="form-control form-control-sm" placeholder="Code van {{ t.persoon.voornaam }}" inputmode="numeric" required autofocus>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('verwijder' ~ t.id) }}">
+                                    <button class="btn btn-sm btn-danger">Verwijderen</button>
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ path('app_tik_lijst', {id: lijst.id}) }}">Annuleren</a>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% else %}
+                        <li class="list-group-item text-body-secondary text-center py-5">Er heeft nog niemand getikt.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        {# Kolom 3: peloton van wacht #}
+        <div class="col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-semibold">{{ lijst.peloton|peloton|capitalize }}</div>
+                <div class="card-body p-2 small">
+                    {% for lid in peloton %}
+                        {% set aanwezig = lijst.heeftGetikt(lid) %}
+                        <div class="peloton-lid {{ aanwezig ? 'aanwezig' }}">
+                            <span>{{ lid.rang ? lid.rang.kort }} {{ lid.naam }} {{ lid.voornaam }}</span>
+                            <span class="status-stip {{ aanwezig ? 'bg-success' : 'bg-secondary-subtle border' }}"></span>
+                        </div>
+                    {% else %}
+                        <div class="text-body-secondary p-2">Geen leden in dit peloton.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

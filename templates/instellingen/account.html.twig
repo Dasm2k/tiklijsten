@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <h1 class="h3 mb-3">{{ account.id ? 'Account ' ~ account.naam : 'Nieuwe tik-pc' }}</h1>
+    <div class="card"><div class="card-body">
+        {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-4">{{ form_row(form.naam) }}</div>
+            <div class="col-md-4">{{ form_row(form.voornaam) }}</div>
+            <div class="col-md-4">{{ form_row(form.tiknummer) }}</div>
+            <div class="col-md-4">{{ form_row(form.nieuweCode.first) }}</div>
+            <div class="col-md-4">{{ form_row(form.nieuweCode.second) }}</div>
+            <div class="col-md-4">{{ form_row(form.rol) }}</div>
+            <div class="col-md-4">{{ form_row(form.post) }}</div>
+            <div class="col-md-4">{{ form_row(form.vastPeloton) }}</div>
+            <div class="col-md-4">{{ form_row(form.sessieduur) }}</div>
+            <div class="col-md-4">{{ form_row(form.email) }}</div>
+        </div>
+        {{ form_rest(form) }}
+        <button class="btn btn-primary"><i class="bi bi-save"></i> Opslaan</button>
+        <a class="btn btn-outline-secondary" href="{{ path('app_instellingen') }}">Annuleren</a>
+        {{ form_end(form) }}
+    </div></div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'emails/_layout.html.twig' %}
+{% block inhoud %}
+    <p>Geachte,</p>
+    <p>Ik wens u te melden dat er een kadaver is opgeslagen. Hieronder de informatie hierover.</p>
+    <p>Soort kadaver: <strong>{{ soort }}</strong><br>Locatie kadaver: <strong>{{ locatie }}</strong><br>In opdracht van: <strong>{{ opdracht }}</strong></p>
+    {% if info %}<p>Extra info:</p><div style="white-space: pre-line">{{ info }}</div>{% endif %}
+    <p>Met vriendelijke groeten,<br>{{ melder.voornaam }} {{ melder.naam }}</p>
+{% endblock %}
