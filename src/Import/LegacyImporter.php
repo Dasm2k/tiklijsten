@@ -6,8 +6,6 @@ use App\Enum\FoutStatus;
 use App\Enum\FoutType;
 use App\Enum\Rol;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -16,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class LegacyImporter
 {
-    private Connection $bron;
+    private LegacyBron $bron;
     private Connection $doel;
     /** @var callable(string): void */
     private $log;
@@ -47,17 +45,37 @@ final class LegacyImporter
      * @param array<int, array{post: string, peloton: ?int}> $tikPcs legacy level => instellingen
      * @return array<string, int> tellers
      */
-    public function importeer(string $bronDsn, string $slug, string $naam, int $volgorde, array $tikPcs, bool $vervang, callable $log): array
+    public function importeer(string $bron, string $slug, string $naam, int $volgorde, array $tikPcs, bool $vervang, callable $log, bool $controleer = false, ?string $bronDatabase = null): array
     {
         $this->log = $log;
-        $params = (new DsnParser(['mysql' => 'pdo_mysql', 'mariadb' => 'pdo_mysql']))->parse($bronDsn);
-        // De oude toepassing schreef UTF-8 via een latin1-verbinding in latin1-kolommen.
-        // Lezen met latin1 geeft de oorspronkelijke bytes terug; tekst() zet ze om naar geldige UTF-8.
-        $this->bron = DriverManager::getConnection($params + ['charset' => 'latin1']);
+        $this->posten = $this->rangen = $this->gemeenten = $this->types = $this->persoonPerId = $this->persoonPerNummer = $this->lijsten = [];
+        $this->afdelingId = $this->onbekend = 0;
+        ($this->log)('Bron openen en controleren...');
+        if (preg_match('~^(mysql|mariadb)://~i', $bron)) {
+            if (null !== $bronDatabase) { throw new \InvalidArgumentException('--bron-database is alleen bedoeld voor een SQL-dump.'); }
+            $this->bron = new LegacyMysqlBron($bron);
+        } else {
+            $this->bron = new LegacySqlDumpBron($bron, $bronDatabase);
+        }
+        try {
+            return $this->uitvoeren($slug, $naam, $volgorde, $tikPcs, $vervang, $controleer);
+        } finally {
+            $this->bron->sluiten();
+        }
+    }
+
+    private function uitvoeren(string $slug, string $naam, int $volgorde, array $tikPcs, bool $vervang, bool $controleer): array
+    {
+        $bronAantallen = $this->controleerBron();
+        $this->controleerDoel();
 
         $bestaand = $this->doel->fetchOne('SELECT id FROM afdeling WHERE slug = ?', [$slug]);
         if ($bestaand && !$vervang) {
             throw new \RuntimeException(sprintf('Afdeling "%s" bestaat al. Gebruik --vervang om ze opnieuw te importeren.', $slug));
+        }
+        if ($controleer) {
+            ($this->log)('Controle voltooid; er zijn geen doelgegevens gewijzigd.');
+            return $bronAantallen;
         }
 
         $tellers = [];
@@ -94,6 +112,7 @@ final class LegacyImporter
             $this->doel->commit();
         } catch (\Throwable $e) {
             $this->doel->rollBack();
+            ($this->log)('<error>Import teruggedraaid; er zijn geen importgegevens opgeslagen.</error>');
             throw $e;
         }
         return $tellers;
@@ -102,11 +121,11 @@ final class LegacyImporter
     private function verwijderAfdeling(int $id): void
     {
         // Volgorde respecteert de foreign keys (ook als ON DELETE CASCADE niet zou bestaan).
-        $this->doel->executeStatement('DELETE b FROM foutbericht b JOIN foutmelding f ON f.id = b.foutmelding_id WHERE f.afdeling_id = ?', [$id]);
+        $this->doel->executeStatement('DELETE FROM foutbericht WHERE foutmelding_id IN (SELECT id FROM foutmelding WHERE afdeling_id = ?)', [$id]);
         $this->doel->executeStatement('DELETE FROM foutmelding WHERE afdeling_id = ?', [$id]);
-        $this->doel->executeStatement('DELETE t FROM tikking t JOIN aanwezigheidslijst l ON l.id = t.lijst_id WHERE l.afdeling_id = ?', [$id]);
+        $this->doel->executeStatement('DELETE FROM tikking WHERE lijst_id IN (SELECT id FROM aanwezigheidslijst WHERE afdeling_id = ?)', [$id]);
         $this->doel->executeStatement('DELETE FROM aanwezigheidslijst WHERE afdeling_id = ?', [$id]);
-        $this->doel->executeStatement('DELETE ml FROM mailinglijst_lid ml JOIN mailinglijst m ON m.id = ml.mailinglijst_id WHERE m.afdeling_id = ?', [$id]);
+        $this->doel->executeStatement('DELETE FROM mailinglijst_lid WHERE mailinglijst_id IN (SELECT id FROM mailinglijst WHERE afdeling_id = ?)', [$id]);
         foreach (['mailinglijst', 'persoon', 'gemeente', 'interventie_type', 'voertuig', 'materiaal', 'herinnering'] as $tabel) {
             $this->doel->executeStatement("DELETE FROM $tabel WHERE afdeling_id = ?", [$id]);
         }
@@ -115,13 +134,70 @@ final class LegacyImporter
 
     private function heeftTabel(string $tabel): bool
     {
-        return (bool) $this->bron->fetchOne('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?', [$tabel]);
+        return $this->bron->heeftTabel($tabel);
     }
 
-    /** @return array<int, array<string, mixed>> */
-    private function rijen(string $sql): array
+    /** @return iterable<array<string, mixed>> */
+    private function rijen(string $tabel): iterable
     {
-        return $this->bron->fetchAllAssociative($sql);
+        return $this->bron->rijen($tabel);
+    }
+
+    /** Controleert de volledige bron voordat ook maar één doelrecord wordt geschreven. */
+    private function controleerBron(): array
+    {
+        if ($this->bron instanceof LegacySqlDumpBron) {
+            foreach ($this->bron->waarschuwingen() as $waarschuwing) {
+                ($this->log)('<comment>'.$waarschuwing.'</comment>');
+            }
+        }
+        $vereist = [
+            'bw_instellingen' => [],
+            'bw_rangen' => ['rang', 'kort', 'naam'],
+            'bw_gemeenten' => ['id', 'naam'],
+            'bw_interventies' => ['id', 'naam'],
+            'bw_users' => ['id', 'nummer', 'code', 'level', 'ploeg', 'rang', 'naam', 'voornaam', 'email', 'actief'],
+            'bw_aanwezigheidslijsten' => ['id', 'datum', 'uur', 'post', 'gemeente', 'interventie', 'info', 'ploeg', 'bevel', 'centralist', 'afgesloten', 'archief'],
+            'bw_aanwezigen' => ['id', 'interventie', 'user', 'datum', 'uur', 'begindatum', 'beginuur'],
+        ];
+        $optioneel = [
+            'bw_post' => ['id', 'naam'],
+            'bw_mailing' => ['id', 'naam', 'omschrijving'], 'bw_maillist' => ['mailing', 'user'],
+            'bw_voertuigen' => ['id', 'naam', 'roepnaam', 'plaat', 'keuring'],
+            'bw_matteriaal' => ['id', 'naam', 'keuring'], 'bw_reminders' => ['id', 'vraag'],
+            'bw_fouten' => ['id', 'type', 'wat', 'probleem', 'melder', 'opvolger', 'datum', 'einde', 'status', 'mailall'],
+            'bw_foutberichten' => ['id', 'fout', 'datum', 'status', 'user', 'bericht'],
+        ];
+        $aantallen = [];
+        foreach ($vereist + $optioneel as $tabel => $kolommen) {
+            if (!$this->heeftTabel($tabel)) {
+                if (isset($vereist[$tabel])) { throw new \RuntimeException('Vereiste brontabel ontbreekt: '.$tabel.'. Gebruik een volledige dump inclusief lege tabellen.'); }
+                continue;
+            }
+            $aantal = 0;
+            foreach ($this->rijen($tabel) as $rij) {
+                $ontbreekt = array_diff($kolommen, array_keys($rij));
+                if ($ontbreekt) { throw new \RuntimeException('Ontbrekende kolommen in '.$tabel.': '.implode(', ', $ontbreekt).'.'); }
+                ++$aantal;
+            }
+            $aantallen[$tabel] = $aantal;
+            ($this->log)(sprintf('  %s: %d rijen', $tabel, $aantal));
+        }
+        return $aantallen;
+    }
+
+    private function controleerDoel(): void
+    {
+        $tabellen = ['afdeling', 'post', 'rang', 'gemeente', 'interventie_type', 'persoon', 'aanwezigheidslijst', 'tikking', 'mailinglijst', 'mailinglijst_lid', 'voertuig', 'materiaal', 'herinnering', 'foutmelding', 'foutbericht'];
+        $ontbreekt = array_diff($tabellen, $this->doel->createSchemaManager()->listTableNames());
+        if ($ontbreekt) { throw new \RuntimeException('Symfony-tabellen ontbreken in de doeldatabase: '.implode(', ', $ontbreekt).'. Voer eerst de bestaande applicatiemigraties uit.'); }
+        if ($this->doel->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\AbstractMySQLPlatform) {
+            foreach ($this->doel->fetchAllAssociative('SELECT TABLE_NAME AS tabel, ENGINE AS engine FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE()') as $rij) {
+                if (in_array($rij['tabel'], $tabellen, true) && 'InnoDB' !== $rij['engine']) {
+                    throw new \RuntimeException('Doeltabel '.$rij['tabel'].' moet InnoDB gebruiken om een mislukte import te kunnen terugdraaien.');
+                }
+            }
+        }
     }
 
     private function laadPosten(): void
@@ -141,7 +217,7 @@ final class LegacyImporter
 
     private function rangen(): int
     {
-        foreach ($this->rijen('SELECT rang, kort, naam FROM bw_rangen') as $r) {
+        foreach ($this->rijen('bw_rangen') as $r) {
             $niveau = (int) $r['rang'];
             $id = $this->doel->fetchOne('SELECT id FROM rang WHERE niveau = ?', [$niveau]);
             if (!$id) {
@@ -155,9 +231,14 @@ final class LegacyImporter
 
     private function afdeling(string $slug, string $naam, int $volgorde): int
     {
-        $inst = $this->bron->fetchAssociative('SELECT * FROM bw_instellingen ORDER BY id LIMIT 1') ?: [];
+        $inst = [];
+        foreach ($this->rijen('bw_instellingen') as $rij) { $inst = $rij; break; }
         // Aantal pelotons volgens de indeling van het personeel (oude lijsten met een hoger peloton blijven gewoon bewaard).
-        $maxPeloton = max((int) $this->bron->fetchOne('SELECT MAX(ploeg) FROM bw_users WHERE ploeg < 99'), 1);
+        $maxPeloton = 1;
+        foreach ($this->rijen('bw_users') as $u) {
+            $peloton = (int) $u['ploeg'];
+            if ($peloton < 99) { $maxPeloton = max($maxPeloton, $peloton); }
+        }
         $this->doel->insert('afdeling', [
             'slug' => $slug,
             'naam' => $naam,
@@ -177,7 +258,7 @@ final class LegacyImporter
 
     private function gemeenten(int $afdeling): int
     {
-        foreach ($this->rijen('SELECT id, naam FROM bw_gemeenten') as $r) {
+        foreach ($this->rijen('bw_gemeenten') as $r) {
             $this->doel->insert('gemeente', ['afdeling_id' => $afdeling, 'naam' => self::tekst($r['naam']), 'actief' => 1]);
             $this->gemeenten[(int) $r['id']] = (int) $this->doel->lastInsertId();
         }
@@ -186,7 +267,7 @@ final class LegacyImporter
 
     private function interventieTypes(int $afdeling): int
     {
-        foreach ($this->rijen('SELECT id, naam FROM bw_interventies ORDER BY id') as $r) {
+        foreach ($this->rijen('bw_interventies') as $r) {
             $this->doel->insert('interventie_type', [
                 'afdeling_id' => $afdeling,
                 'naam' => self::tekst($r['naam']),
@@ -205,12 +286,12 @@ final class LegacyImporter
     {
         $postNamen = [];
         if ($this->heeftTabel('bw_post')) {
-            foreach ($this->rijen('SELECT id, naam FROM bw_post') as $p) {
+            foreach ($this->rijen('bw_post') as $p) {
                 $postNamen[(int) $p['id']] = $p['naam'];
             }
         }
 
-        foreach ($this->rijen('SELECT * FROM bw_users ORDER BY id') as $u) {
+        foreach ($this->rijen('bw_users') as $u) {
             $level = (int) $u['level'];
             $rol = Rol::vanLegacyLevel($level);
             $systeem = Rol::POST === $rol || Rol::ADMIN === $rol || 9999 === (int) $u['nummer'];
@@ -234,7 +315,7 @@ final class LegacyImporter
             $this->doel->insert('persoon', [
                 'afdeling_id' => $afdeling,
                 'tiknummer' => (int) $u['nummer'],
-                'zonenummer' => (int) $u['zonenummer'] > 0 ? (int) $u['zonenummer'] : null,
+                'zonenummer' => (int) ($u['zonenummer'] ?? 0) > 0 ? (int) $u['zonenummer'] : null,
                 'code' => (string) $u['code'],
                 'rang_id' => $this->rangen[(int) $u['rang']] ?? null,
                 'peloton' => $peloton >= 1 && $peloton < 99 ? $peloton : null,
@@ -259,8 +340,7 @@ final class LegacyImporter
 
     private function lijsten(int $afdeling): int
     {
-        $stmt = $this->bron->executeQuery('SELECT * FROM bw_aanwezigheidslijsten ORDER BY id');
-        while ($l = $stmt->fetchAssociative()) {
+        foreach ($this->rijen('bw_aanwezigheidslijsten') as $l) {
             $start = self::datumTijd($l['datum'].' '.$l['uur']) ?? '1970-01-01 00:00:00';
             $tweede = self::datum($l['twdatum'] ?? null) ? self::datumTijd($l['twdatum'].' '.($l['twuur'] ?: '00:00:00')) : null;
             $this->doel->insert('aanwezigheidslijst', [
@@ -291,8 +371,7 @@ final class LegacyImporter
         $overgeslagen = 0;
         $gezien = [];
         $buffer = [];
-        $stmt = $this->bron->executeQuery('SELECT * FROM bw_aanwezigen ORDER BY id');
-        while ($a = $stmt->fetchAssociative()) {
+        foreach ($this->rijen('bw_aanwezigen') as $a) {
             $lijst = $this->lijsten[(int) $a['interventie']] ?? null;
             $persoon = $this->persoonPerNummer[(int) $a['user']] ?? $this->onbekendePersoon((int) $a['user']);
             $einde = self::datumTijd($a['datum'].' '.$a['uur']);
@@ -349,8 +428,10 @@ final class LegacyImporter
 
     private function mailinglijsten(int $afdeling): int
     {
+        if (!$this->heeftTabel('bw_mailing')) { return 0; }
         $aantal = 0;
-        foreach ($this->rijen('SELECT * FROM bw_mailing ORDER BY id') as $m) {
+        $mailingIds = [];
+        foreach ($this->rijen('bw_mailing') as $m) {
             $naam = self::tekst($m['naam']);
             $omschrijving = self::tekst($m['omschrijving']);
             $peloton = preg_match('/^wacht\s*(\d)$/i', $naam, $x) ? (int) $x[1] : null;
@@ -364,17 +445,18 @@ final class LegacyImporter
                 'alle_lijsten' => (int) $alle,
                 'foutmeldingen' => (int) $fouten,
             ]);
-            $id = (int) $this->doel->lastInsertId();
-            $leden = [];
-            foreach ($this->bron->fetchFirstColumn('SELECT user FROM bw_maillist WHERE mailing = ?', [$m['id']]) as $user) {
-                if ($p = $this->persoonPerId[(int) $user] ?? null) {
-                    $leden[$p] = true;
-                }
-            }
-            foreach (array_keys($leden) as $p) {
-                $this->doel->insert('mailinglijst_lid', ['mailinglijst_id' => $id, 'persoon_id' => $p]);
-            }
+            $mailingIds[(int) $m['id']] = (int) $this->doel->lastInsertId();
             ++$aantal;
+        }
+        $gezien = [];
+        if ($this->heeftTabel('bw_maillist')) {
+            foreach ($this->rijen('bw_maillist') as $lid) {
+                $id = $mailingIds[(int) $lid['mailing']] ?? null;
+                $persoon = $this->persoonPerId[(int) $lid['user']] ?? null;
+                if (!$id || !$persoon || isset($gezien[$id.'-'.$persoon])) { continue; }
+                $gezien[$id.'-'.$persoon] = true;
+                $this->doel->insert('mailinglijst_lid', ['mailinglijst_id' => $id, 'persoon_id' => $persoon]);
+            }
         }
         return $aantal;
     }
@@ -385,7 +467,7 @@ final class LegacyImporter
             return 0;
         }
         $aantal = 0;
-        foreach ($this->rijen("SELECT * FROM $bronTabel ORDER BY id") as $r) {
+        foreach ($this->rijen($bronTabel) as $r) {
             $this->doel->insert($doelTabel, ['afdeling_id' => $afdeling] + $map($r));
             ++$aantal;
         }
@@ -400,7 +482,8 @@ final class LegacyImporter
         }
         $fouten = 0;
         $berichten = 0;
-        foreach ($this->rijen('SELECT * FROM bw_fouten ORDER BY id') as $f) {
+        $foutIds = [];
+        foreach ($this->rijen('bw_fouten') as $f) {
             $this->doel->insert('foutmelding', [
                 'afdeling_id' => $afdeling,
                 'type' => (FoutType::tryFrom((int) $f['type']) ?? FoutType::ANDERS)->value,
@@ -413,9 +496,13 @@ final class LegacyImporter
                 'status' => (FoutStatus::tryFrom((int) $f['status']) ?? FoutStatus::NIEUW)->value,
                 'iedereen_mailen' => (int) ((int) $f['mailall'] > 0),
             ]);
-            $id = (int) $this->doel->lastInsertId();
+            $foutIds[(int) $f['id']] = (int) $this->doel->lastInsertId();
             ++$fouten;
-            foreach ($this->bron->fetchAllAssociative('SELECT * FROM bw_foutberichten WHERE fout = ? ORDER BY id', [$f['id']]) as $b) {
+        }
+        if ($this->heeftTabel('bw_foutberichten')) {
+            foreach ($this->rijen('bw_foutberichten') as $b) {
+                $id = $foutIds[(int) $b['fout']] ?? null;
+                if (null === $id) { continue; }
                 $this->doel->insert('foutbericht', [
                     'foutmelding_id' => $id,
                     'datum' => self::datumTijd($b['datum'].' 00:00:00') ?? date('Y-m-d H:i:s'),
