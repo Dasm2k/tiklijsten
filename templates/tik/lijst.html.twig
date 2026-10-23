@@ -87,7 +87,7 @@
                         </div>
                     {% endif %}
                     {% if lijst.speciaal and lijst.openRegistraties %}<div class="alert alert-warning">Nog {{ lijst.openRegistraties }} open beginregistratie(s). Vul eerst de einduren in.</div>{% endif %}
-                    <button class="btn btn-outline-danger w-100" {{ (chauffeur_verplicht and not lijst.heeftChauffeur) or (lijst.speciaal and lijst.openRegistraties) ? 'disabled' }}><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
+                    <button class="btn btn-lg btn-danger w-100" {{ (chauffeur_verplicht and not lijst.heeftChauffeur) or (lijst.speciaal and lijst.openRegistraties) ? 'disabled' }}><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
                 </form>
             {% elseif is_granted('LIJST_AFDRUKKEN', lijst) %}
                 <a class="btn btn-outline-secondary w-100" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>
