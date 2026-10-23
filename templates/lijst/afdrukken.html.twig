@@ -20,7 +20,7 @@
         {% if herinneringen %}
             <div class="card mb-3"><div class="card-body">
                 {% for h in herinneringen %}
-                    <div class="form-check"><input class="form-check-input" type="checkbox" id="h{{ h.id }}"><label class="form-check-label" for="h{{ h.id }}">{{ h.vraag }}</label></div>
+                    <div class="form-check"><i class="bi bi-square p-2"></i><label class="form-check-label" for="h{{ h.id }}">{{ h.vraag }}</label></div>
                 {% endfor %}
             </div></div>
         {% endif %}
