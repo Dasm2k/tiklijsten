@@ -16,7 +16,7 @@
         <div class="col-lg-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold">Lijst {{ lijst.label }}</span>
+                    <span class="fw-semibold">{{ lijst.speciaal ? 'Speciale lijst' : 'Lijst' }} {{ lijst.label }}</span>
                     {% if lijst.afgesloten %}<span class="badge text-bg-secondary">Afgesloten</span>{% else %}<span class="badge text-bg-warning">Open</span>{% endif %}
                 </div>
                 <div class="card-body">
@@ -26,9 +26,9 @@
                         <dd class="col-7 tabular">
                             {% if lijst.tweedeStart %}
                                 {{ lijst.tweedeStart|date('d/m/Y H:i') }}
-                            {% elseif not lijst.afgesloten %}
+                            {% elseif not lijst.afgesloten and not lijst.speciaal %}
                                 <form method="post" action="{{ path('app_tik_tweede_start', {id: lijst.id}) }}" class="d-flex gap-1">
-                                    <input type="datetime-local" name="tweede_start" class="form-control form-control-sm" value="{{ 'now'|date('Y-m-d\\TH:i') }}" required>
+                                    <input type="datetime-local" name="tweede_start" class="form-control form-control-sm" required>
                                     <input type="hidden" name="_token" value="{{ csrf_token('tweede' ~ lijst.id) }}">
                                     <button class="btn btn-sm btn-outline-secondary" title="Tweede beginuur toevoegen"><i class="bi bi-plus"></i></button>
                                 </form>
@@ -38,7 +38,8 @@
                         <dt class="col-5">Peloton</dt><dd class="col-7">{{ lijst.peloton|peloton }}</dd>
                         <dt class="col-5">Gemeente</dt><dd class="col-7">{{ lijst.gemeente ? lijst.gemeente.naam }}</dd>
                         <dt class="col-5">Interventie</dt><dd class="col-7">{{ lijst.interventieType ? lijst.interventieType.naam }}</dd>
-                        <dt class="col-5">Bevelvoerder</dt><dd class="col-7">{{ lijst.bevelvoerder ? lijst.bevelvoerder.naamMetRang : '-' }}</dd>
+                        {% if lijst.interventienummer is not null %}<dt class="col-5">Interventie #</dt><dd class="col-7">{{ lijst.interventienummer }}</dd>{% endif %}
+                        {% if not lijst.speciaal %}<dt class="col-5">Bevelvoerder</dt><dd class="col-7">{{ lijst.bevelvoerder ? lijst.bevelvoerder.naamMetRang : '-' }}</dd>{% endif %}
                         {% if lijst.info %}<dt class="col-5">Info</dt><dd class="col-7">{{ lijst.info }}</dd>{% endif %}
                     </dl>
                 </div>
@@ -49,7 +50,11 @@
                     <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-person-check"></i> Intikken</div>
                     <div class="card-body">
                         <form method="post" action="{{ path('app_tik_in', {id: lijst.id}) }}" autocomplete="off">
-                            {% if lijst.tweedeStart %}
+                            {% if lijst.speciaal %}
+                                <p class="small text-body-secondary">Intikken registreert je start. Vul je einduur later in via Aanwezigen.</p>
+                                <label class="form-label" for="moment">Startdatum en -tijd</label>
+                                <input type="datetime-local" class="form-control mb-3" name="moment" id="moment" required>
+                            {% elseif lijst.tweedeStart %}
                                 <div class="btn-group w-100 mb-3" role="group" aria-label="Beginuur">
                                     <input type="radio" class="btn-check" name="beginuur" id="begin1" value="1" checked>
                                     <label class="btn btn-outline-primary" for="begin1">Begin 1 · {{ lijst.start|date('H:i') }}</label>
@@ -71,11 +76,20 @@
                     </div>
                 </div>
 
+                {% if chauffeur_verplicht and not lijst.heeftChauffeur %}<div class="alert alert-warning">Duid eerst minstens één chauffeur aan: klik op de naam van een aanwezige en kies een voertuig.</div>{% endif %}
                 <form method="post" action="{{ path('app_tik_afsluiten', {id: lijst.id}) }}" data-bevestig="Lijst {{ lijst.label }} afsluiten? Na het afsluiten kan niemand meer intikken.">
                     <input type="hidden" name="_token" value="{{ csrf_token('afsluiten' ~ lijst.id) }}">
-                    <button class="btn btn-outline-danger w-100"><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
+                    {% if lijst.speciaal and not mag_speciaal_afsluiten %}
+                        <div class="card card-body mb-2">
+                            <p class="small">Afsluiten door een beheerder, sergeant of adjudant. Vul je persoonlijke tiknummer en code in.</p>
+                            <label for="afsluit-tiknummer" class="form-label">Tiknummer bevoegde afsluiter</label><input class="form-control mb-2" id="afsluit-tiknummer" name="afsluit_tiknummer" inputmode="numeric" required>
+                            <label for="afsluit-code" class="form-label">Persoonlijke code</label><input class="form-control" id="afsluit-code" name="afsluit_code" type="password" autocomplete="off" required>
+                        </div>
+                    {% endif %}
+                    {% if lijst.speciaal and lijst.openRegistraties %}<div class="alert alert-warning">Nog {{ lijst.openRegistraties }} open beginregistratie(s). Vul eerst de einduren in.</div>{% endif %}
+                    <button class="btn btn-outline-danger w-100" {{ (chauffeur_verplicht and not lijst.heeftChauffeur) or (lijst.speciaal and lijst.openRegistraties) ? 'disabled' }}><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
                 </form>
-            {% else %}
+            {% elseif is_granted('LIJST_AFDRUKKEN', lijst) %}
                 <a class="btn btn-outline-secondary w-100" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>
             {% endif %}
         </div>
@@ -85,15 +99,23 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span class="fw-semibold">Aanwezigen</span>
-                    <span class="tik-teller">{{ lijst.tikkingen|length }}</span>
+                    <span class="tik-teller">{{ lijst.aantalAanwezigen }}</span>
                 </div>
                 <ul class="list-group list-group-flush">
                     {% for t in lijst.tikkingen %}
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <div class="fw-semibold">{{ t.persoon.naam }} {{ t.persoon.voornaam }}</div>
-                                    <div class="small text-body-secondary tabular">{{ t.start|date('H:i') }} → {{ t.einde|date('H:i') }} · {{ t.prestatie|duur }}</div>
+                                    <div class="fw-semibold">
+                                        {% if chauffeurs_actief and not lijst.afgesloten %}
+                                            <button type="button" class="btn btn-link p-0 text-start fw-semibold" data-bs-toggle="modal" data-bs-target="#chauffeur{{ t.id }}">{{ t.persoon.naam }} {{ t.persoon.voornaam }}</button>
+                                        {% else %}{{ t.persoon.naam }} {{ t.persoon.voornaam }}{% endif %}
+
+                                    </div>
+                                    {% include 'lijst/_registratie_info.html.twig' %}
+                                    {% include 'lijst/_registratie_tijden.html.twig' %}
+                                    {% if t.einde %}<div class="small text-body-secondary tabular mt-1">Prestatie: {{ t.prestatie|duur }}</div>{% endif %}
+                                    {% if lijst.speciaal and not lijst.afgesloten %}<button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-bs-toggle="modal" data-bs-target="#tijden{{ t.id }}">Tijden aanpassen</button>{% endif %}
                                 </div>
                                 {% if not lijst.afgesloten and verwijder != t.id %}
                                     <a class="btn btn-sm btn-link text-danger" href="{{ path('app_tik_lijst', {id: lijst.id, verwijder: t.id}) }}" title="Tikking verwijderen"><i class="bi bi-x-circle"></i></a>
@@ -133,4 +155,49 @@
             </div>
         </div>
     </div>
+    {% if chauffeurs_actief and not lijst.afgesloten %}
+        {% for t in lijst.tikkingen %}
+            <div class="modal fade" id="chauffeur{{ t.id }}" tabindex="-1" aria-labelledby="chauffeurTitel{{ t.id }}" aria-hidden="true">
+                <div class="modal-dialog"><div class="modal-content">
+                    <form method="post" action="{{ path('app_tik_chauffeur', {id: lijst.id, tikking: t.id}) }}">
+                        <div class="modal-header"><h2 class="modal-title fs-5" id="chauffeurTitel{{ t.id }}">Chauffeur · {{ t.persoon.volledigeNaam }}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button></div>
+                        <div class="modal-body">
+                            <p>Post: {{ t.persoon.post ? t.persoon.post.naam : 'Niet ingesteld voor dit personeelslid' }}</p>
+                            {% if t.chauffeurVermelding %}<p>Huidige registratie: {{ t.chauffeurVermelding }}</p>{% endif %}
+                            <label class="form-label" for="voertuig{{ t.id }}">Bestuurd voertuig</label>
+                            <select class="form-select" id="voertuig{{ t.id }}" name="voertuig">
+                                <option value="">Geen chauffeur</option>
+                                {% if t.chauffeurVoertuig %}<option value="__behouden" selected>Huidige registratie behouden: {{ t.chauffeurVermelding }}</option>{% endif %}
+                                {% for v in chauffeur_voertuigen %}
+                                    {% if t.persoon.post and v.post and v.post.id == t.persoon.post.id %}
+                                        <option value="{{ v.id }}">{{ v.chauffeurLabel }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if t.chauffeurVoertuig and not t.chauffeurVoertuig.actief %}<p class="small mt-2">Het geregistreerde voertuig is niet meer actief. Sluit dit venster om de registratie te behouden, of kies een vervanging.</p>{% endif %}
+                            <input type="hidden" name="_token" value="{{ csrf_token('chauffeur' ~ t.id) }}">
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button><button class="btn btn-primary">Opslaan</button></div>
+                    </form>
+                </div></div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% if lijst.speciaal and not lijst.afgesloten %}
+        {% for t in lijst.tikkingen %}
+            <div class="modal fade" id="tijden{{ t.id }}" tabindex="-1" aria-labelledby="tijdenTitel{{ t.id }}" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+                <form method="post" action="{{ path('app_tik_tijden', {id: lijst.id, tikking: t.id}) }}">
+                    <div class="modal-header"><h2 class="modal-title fs-5" id="tijdenTitel{{ t.id }}">Tijden · {{ t.persoon.volledigeNaam }}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button></div>
+                    <div class="modal-body">
+                        <label class="form-label" for="start{{ t.id }}">Begin</label><input class="form-control mb-3" id="start{{ t.id }}" name="start" type="datetime-local" value="{{ t.start|date('Y-m-d\\TH:i') }}" required>
+                        <label class="form-label" for="einde{{ t.id }}">Einde (leeg = nog aanwezig)</label><input class="form-control mb-3" id="einde{{ t.id }}" name="einde" type="datetime-local" value="{{ t.einde ? t.einde|date('Y-m-d\\TH:i') }}">
+                        <label class="form-label" for="wijzignummer{{ t.id }}">Tiknummer van jezelf of een bevoegde beheerder/onderofficier</label><input class="form-control mb-3" id="wijzignummer{{ t.id }}" name="wijzig_tiknummer" inputmode="numeric" value="{{ t.persoon.tiknummer }}" required>
+                        <label class="form-label" for="wijzigcode{{ t.id }}">Persoonlijke code van de uitvoerder</label><input class="form-control" id="wijzigcode{{ t.id }}" name="code" type="password" autocomplete="off" required>
+                        <input type="hidden" name="_token" value="{{ csrf_token('tijden' ~ t.id) }}">
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button><button class="btn btn-primary">Tijden opslaan</button></div>
+                </form>
+            </div></div></div>
+        {% endfor %}
+    {% endif %}
 {% endblock %}

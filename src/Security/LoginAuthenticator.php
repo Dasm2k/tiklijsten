@@ -29,6 +29,7 @@ final class LoginAuthenticator extends AbstractLoginFormAuthenticator
     public function __construct(
         private readonly UrlGeneratorInterface $urls,
         private readonly AfdelingRepository $afdelingen,
+        private readonly PersoonProvider $provider,
     ) {
     }
 
@@ -53,7 +54,13 @@ final class LoginAuthenticator extends AbstractLoginFormAuthenticator
         }
 
         return new Passport(
-            new UserBadge($slug.':'.$tiknummer),
+            new UserBadge($slug.':'.$tiknummer, function (string $identifier) {
+                $persoon = $this->provider->loadUserByIdentifier($identifier);
+                if ($persoon instanceof \App\Entity\Persoon && $persoon->isSuperadmin()) {
+                    throw new CustomUserMessageAuthenticationException('Gebruik de superadmin-aanmelding met 2FA.');
+                }
+                return $persoon;
+            }),
             new PasswordCredentials($code),
             [
                 new CsrfTokenBadge('login', (string) $request->request->get('_csrf_token')),

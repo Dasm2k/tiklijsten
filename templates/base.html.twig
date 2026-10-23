@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% set huidige_afdeling = app.user ? app.user.afdeling : null %}
+    {% set huidige_afdeling = app.user ? huidige_afdeling() : null %}
     <title>{% block title %}{{ huidige_afdeling ? huidige_afdeling.titel : app_naam }}{% endblock %}</title>
     <link rel="icon" href="{{ asset('img/logo.png') }}">
     <script>document.documentElement.setAttribute('data-bs-theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');</script>
@@ -39,6 +39,6 @@
 
 <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 {% block javascripts %}{% endblock %}
-<script src="{{ asset('js/app.js') }}"></script>
+<script src="{{ asset('js/app.js') }}?v=20261023-interventienummer"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% import '_macros.html.twig' as m %}
 {% block body %}
-    {% set afd = app.user.afdeling %}
+    {% set afd = huidige_afdeling() %}
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="h3 mb-0">Welkom, {{ app.user.voornaam }}</h1>
@@ -55,7 +55,7 @@
                         <td>{{ lijst.interventieType ? lijst.interventieType.naam }}</td>
                         <td class="text-end">
                             {{ m.lijst_status(lijst) }}
-                            {% if is_granted('ROLE_POST') or is_granted('ROLE_PERSONEEL') %}
+                            {% if is_granted('LIJST_AFDRUKKEN', lijst) %}
                                 <a class="btn btn-sm btn-link" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}" title="Afdrukken"><i class="bi bi-printer"></i></a>
                             {% endif %}
                         </td>

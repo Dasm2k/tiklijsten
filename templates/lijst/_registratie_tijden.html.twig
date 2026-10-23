@@ -1,0 +1,6 @@
+<dl class="row g-1 mb-0 mt-2 small registratie-tijden">
+    <dt class="col-3">Begin</dt>
+    <dd class="col-9 tabular mb-0">{{ t.start|date('d/m/Y H:i') }}</dd>
+    <dt class="col-3">Einde</dt>
+    <dd class="col-9 tabular mb-0">{{ t.einde ? t.einde|date('d/m/Y H:i') : 'Nog aanwezig' }}</dd>
+</dl>

@@ -23,6 +23,7 @@
 {% macro persoon(p) %}{% if p %}{{ p.rang ? p.rang.kort ~ ' ' }}{{ p.naam }} {{ p.voornaam }}{% else %}<span class="text-body-secondary">n.v.t.</span>{% endif %}{% endmacro %}
 
 {% macro lijst_status(lijst) %}
+    {% if lijst.speciaal %}<span class="badge text-bg-primary">Speciale lijst</span>{% endif %}
     {% if lijst.gearchiveerd %}<span class="badge text-bg-secondary">Archief</span>
     {% elseif lijst.afgesloten %}<span class="badge text-bg-light border">Afgesloten</span>
     {% else %}<span class="badge text-bg-warning">Open</span>{% endif %}

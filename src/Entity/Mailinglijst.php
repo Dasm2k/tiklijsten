@@ -11,6 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: MailinglijstRepository::class)]
 class Mailinglijst
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 

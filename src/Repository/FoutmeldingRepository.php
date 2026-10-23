@@ -51,7 +51,8 @@ class FoutmeldingRepository extends ServiceEntityRepository
             return 0;
         }
         $em = $this->getEntityManager();
-        $em->createQuery('DELETE FROM App\Entity\Foutbericht b WHERE b.foutmelding IN (:ids)')->setParameter('ids', $ids)->execute();
-        return $em->createQuery('DELETE FROM App\Entity\Foutmelding f WHERE f.id IN (:ids)')->setParameter('ids', $ids)->execute();
+        foreach ($this->findBy(['id' => $ids]) as $melding) { $em->remove($melding); }
+        $em->flush();
+        return count($ids);
     }
 }

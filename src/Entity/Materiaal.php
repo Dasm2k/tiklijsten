@@ -9,6 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: MateriaalRepository::class)]
 class Materiaal
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 

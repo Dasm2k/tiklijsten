@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<h1 class="h3">Afdeling kiezen</h1>
+<p>Je beheert telkens de gekozen afdeling. Je account blijft globaal geldig.</p>
+<form method="post" class="card card-body" style="max-width:560px">
+<label class="form-label" for="afdeling">Afdeling</label>
+<select class="form-select mb-3" id="afdeling" name="afdeling" required>
+{% for a in afdelingen %}<option value="{{ a.id }}" {{ huidige_afdeling() and huidige_afdeling().id == a.id ? 'selected' }}>{{ a.naam }}</option>{% endfor %}
+</select><input type="hidden" name="_token" value="{{ csrf_token('afdeling_wisselen') }}"><button class="btn btn-primary">Afdeling openen</button>
+</form>
+{% endblock %}

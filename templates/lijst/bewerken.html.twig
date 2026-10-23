@@ -17,7 +17,8 @@
                 <div class="col-md-4">{{ form_row(form.post) }}</div>
                 <div class="col-md-4">{{ form_row(form.gemeente) }}</div>
                 <div class="col-md-4">{{ form_row(form.interventieType) }}</div>
-                <div class="col-md-4">{{ form_row(form.bevelvoerder) }}</div>
+                <div class="col-md-4">{{ form_row(form.interventienummer) }}</div>
+                <div class="col-md-4" data-bevelvoerder {{ lijst.speciaal ? 'hidden' }}>{{ form_row(form.bevelvoerder) }}</div>
                 <div class="col-md-4">{{ form_row(form.centralist) }}</div>
                 <div class="col-md-4">{{ form_row(form.info) }}</div>
             </div>

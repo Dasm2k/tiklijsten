@@ -1,5 +1,36 @@
 // Kleine verbeteringen zonder build-stap.
 document.addEventListener('DOMContentLoaded', () => {
+  // De verplichting volgt het gekozen interventietype; de server controleert dit ook.
+  document.querySelectorAll('select[data-interventietype]').forEach((type) => {
+    const nummer = type.form?.querySelector('[data-interventienummer]');
+    if (!nummer) return;
+    const updateInterventienummer = () => {
+      nummer.required = type.selectedOptions[0]?.dataset.interventienummerVerplicht === '1';
+      nummer.labels?.forEach((label) => label.classList.toggle('required', nummer.required));
+    };
+    type.addEventListener('change', updateInterventienummer);
+    updateInterventienummer();
+  });
+
+  // Bij een speciale lijst is geen bevelvoerder nodig.
+  const speciaal = document.querySelector('input[data-speciale-lijst]');
+  if (speciaal) {
+    const updateBevelvoerder = () => document.querySelectorAll('[data-bevelvoerder]').forEach((groep) => {
+      groep.hidden = speciaal.checked;
+      groep.querySelectorAll('select').forEach((veld) => {
+        veld.disabled = speciaal.checked;
+        veld.required = !speciaal.checked;
+        if (veld.tomselect) {
+          veld.tomselect.isRequired = !speciaal.checked;
+          speciaal.checked ? veld.tomselect.disable() : veld.tomselect.enable();
+          veld.tomselect.refreshState();
+        }
+      });
+    });
+    speciaal.addEventListener('change', updateBevelvoerder);
+    updateBevelvoerder();
+  }
+
   // Zoekbare keuzelijsten (vervangt de oude jQuery-plugin).
   if (window.TomSelect) {
     document.querySelectorAll('select[data-zoekbaar]').forEach((el) => new TomSelect(el, { maxOptions: 500, allowEmptyOption: true }));

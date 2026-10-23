@@ -1,5 +1,5 @@
 {% set route = app.request.attributes.get('_route') %}
-{% set afd = app.user.afdeling %}
+{% set afd = huidige_afdeling() %}
 <nav class="navbar navbar-expand-lg navbar-dark navbar-bw geen-print">
     <div class="container-xxl">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ path('app_dashboard') }}">
@@ -20,6 +20,7 @@
                 {% if is_granted('ROLE_LID') %}
                     <li class="nav-item"><a class="nav-link {{ route starts with 'app_prestaties' ? 'active' }}" href="{{ path('app_prestaties') }}"><i class="bi bi-stopwatch"></i> Prestaties</a></li>
                 {% endif %}
+                {% if is_granted('ROLE_LID') %}<li class="nav-item"><a class="nav-link {{ route starts with 'app_speciaal' ? 'active' }}" href="{{ path('app_speciaal_index') }}">Speciale lijsten</a></li>{% endif %}
                 {% if is_granted('ROLE_PERSONEEL') %}
                     <li class="nav-item"><a class="nav-link {{ route starts with 'app_personeel' ? 'active' }}" href="{{ path('app_personeel_index') }}"><i class="bi bi-people"></i> Personeel</a></li>
                 {% endif %}
@@ -32,6 +33,7 @@
                         <a class="nav-link dropdown-toggle {{ route starts with 'app_stam' or route starts with 'app_mailing' or route starts with 'app_instellingen' or route starts with 'app_systeemaccount' ? 'active' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Beheer</a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ path('app_instellingen') }}">Instellingen &amp; accounts</a></li>
+                            <li><a class="dropdown-item" href="{{ path('app_handelingen') }}">Handelingenlog &amp; prullenbak</a></li>
                             <li><a class="dropdown-item" href="{{ path('app_mailing_index') }}">Mailinglijsten</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ path('app_stam_index', {soort: 'gemeenten'}) }}">Gemeenten</a></li>
@@ -52,8 +54,9 @@
                         <i class="bi bi-person-circle"></i> {{ app.user.voornaam }} {{ app.user.naam }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
+                        {% if is_granted('ROLE_SUPERADMIN') %}<li><a class="dropdown-item" href="{{ path('app_superadmin_afdelingen') }}">Afdeling wisselen</a></li>{% endif %}
                         <li><span class="dropdown-item-text small text-body-secondary">{{ afd.naam }} · {{ app.user.rol.label }}</span></li>
-                        {% if is_granted('ROLE_LID') %}
+                        {% if is_granted('ROLE_LID') and not is_granted('ROLE_SUPERADMIN') %}
                             <li><a class="dropdown-item" href="{{ path('app_account_code') }}"><i class="bi bi-key"></i> Code wijzigen</a></li>
                         {% endif %}
                         <li><a class="dropdown-item" href="{{ logout_path() }}"><i class="bi bi-box-arrow-right"></i> Afmelden</a></li>

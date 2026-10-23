@@ -31,11 +31,11 @@ final class StamgegevensController extends BaseController
         'gemeenten' => ['class' => Gemeente::class, 'form' => GemeenteType::class, 'titel' => 'Gemeenten', 'enkelvoud' => 'gemeente',
             'kolommen' => ['naam' => 'Naam', 'actief' => 'Actief'], 'verwijderen' => false, 'sort' => ['naam' => 'ASC']],
         'interventies' => ['class' => InterventieType::class, 'form' => InterventieTypeType::class, 'titel' => 'Soorten interventie', 'enkelvoud' => 'soort interventie',
-            'kolommen' => ['volgorde' => 'Volgorde', 'naam' => 'Naam', 'actief' => 'Actief', 'inStatistiek' => 'In jaarstatistiek'], 'verwijderen' => false, 'sort' => ['volgorde' => 'ASC', 'naam' => 'ASC']],
+            'kolommen' => ['volgorde' => 'Volgorde', 'naam' => 'Naam', 'actief' => 'Actief', 'inStatistiek' => 'In jaarstatistiek', 'chauffeurVerplicht' => 'Chauffeur verplicht', 'interventienummerVerplicht' => 'Interventienummer verplicht'], 'verwijderen' => false, 'sort' => ['volgorde' => 'ASC', 'naam' => 'ASC']],
         'herinneringen' => ['class' => Herinnering::class, 'form' => HerinneringType::class, 'titel' => 'Controlevragen op de afdruk', 'enkelvoud' => 'controlevraag',
             'kolommen' => ['vraag' => 'Vraag'], 'verwijderen' => true, 'sort' => ['id' => 'ASC']],
         'voertuigen' => ['class' => Voertuig::class, 'form' => VoertuigType::class, 'titel' => 'Voertuigen', 'enkelvoud' => 'voertuig',
-            'kolommen' => ['naam' => 'Naam', 'roepnaam' => 'Roepnaam', 'nummerplaat' => 'Nummerplaat', 'keuring' => 'Keuring'], 'verwijderen' => true, 'sort' => ['naam' => 'ASC']],
+            'kolommen' => ['naam' => 'Naam', 'post' => 'Post', 'actief' => 'Actief', 'roepnaam' => 'Roepnaam', 'nummerplaat' => 'Nummerplaat', 'keuring' => 'Keuring'], 'verwijderen' => false, 'sort' => ['naam' => 'ASC']],
         'materiaal' => ['class' => Materiaal::class, 'form' => MateriaalType::class, 'titel' => 'Materiaal', 'enkelvoud' => 'materiaal',
             'kolommen' => ['naam' => 'Naam', 'keuring' => 'Keuring'], 'verwijderen' => true, 'sort' => ['naam' => 'ASC']],
     ];

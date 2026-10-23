@@ -30,9 +30,50 @@ final class InstellingenController extends BaseController
             return $this->redirectToRoute('app_instellingen');
         }
         return $this->render('instellingen/index.html.twig', [
+            'chauffeur_posten' => $em->getRepository(\App\Entity\Post::class)->findBy([], ['naam' => 'ASC']),
+            'chauffeur_instellingen' => $this->chauffeurInstellingen($em),
             'form' => $form,
             'accounts' => $personen->findBy(['afdeling' => $afdeling, 'systeemaccount' => true], ['tiknummer' => 'ASC']),
         ], new Response(status: $form->isSubmitted() ? 422 : 200));
+    }
+
+    private function chauffeurInstellingen(EntityManagerInterface $em): array
+    {
+        $waarden = [];
+        foreach ($em->getRepository(\App\Entity\ChauffeurInstelling::class)->findBy(['afdeling' => $this->afdeling()]) as $instelling) {
+            $waarden[$instelling->getPost()->getId()] = $instelling->isActief() ? 'aan' : 'uit';
+        }
+        return $waarden;
+    }
+
+    #[Route('/chauffeurs', name: 'app_instellingen_chauffeurs', methods: ['POST'])]
+    public function chauffeurs(Request $request, EntityManagerInterface $em): Response
+    {
+        if (!$this->csrfOk($request, 'chauffeur_instellingen')) { throw $this->createAccessDeniedException(); }
+        foreach ($request->request->all('posten') as $id => $waarde) {
+            if (!ctype_digit((string) $id) || !in_array($waarde, ['standaard', 'aan', 'uit'], true)) {
+                throw $this->createNotFoundException();
+            }
+            $post = $em->find(\App\Entity\Post::class, (int) $id);
+            if (!$post) { throw $this->createNotFoundException(); }
+            $instelling = $em->getRepository(\App\Entity\ChauffeurInstelling::class)->findOneBy(['afdeling' => $this->afdeling(), 'post' => $post]);
+            if ('standaard' === $waarde) {
+                if ($instelling) { $em->remove($instelling); }
+            } else {
+                if (!$instelling) {
+                    $em->getFilters()->disable('soft_delete');
+                    try { $instelling = $em->getRepository(\App\Entity\ChauffeurInstelling::class)->findOneBy(['afdeling'=>$this->afdeling(),'post'=>$post]); }
+                    finally { $em->getFilters()->enable('soft_delete'); }
+                    if ($instelling) { $instelling->herstel(); }
+                }
+                $instelling ??= (new \App\Entity\ChauffeurInstelling())->setAfdeling($this->afdeling())->setPost($post);
+                $instelling->setActief('aan' === $waarde);
+                $em->persist($instelling);
+            }
+        }
+        $em->flush();
+        $this->addFlash('success', 'Chauffeursinstellingen per post opgeslagen.');
+        return $this->redirectToRoute('app_instellingen');
     }
 
     #[Route('/account/nieuw', name: 'app_systeemaccount_nieuw', methods: ['GET', 'POST'])]
@@ -45,6 +86,7 @@ final class InstellingenController extends BaseController
         if (!$account->isSysteemaccount()) {
             throw $this->createNotFoundException();
         }
+        if ($account->isSuperadmin()) { throw $this->createAccessDeniedException('Superadmin aanpassen via het consolecommando.'); }
         // Enkel een administrator mag een administratoraccount aanpassen of aanmaken.
         $isAdmin = $this->isGranted('ROLE_ADMIN');
         if (Rol::ADMIN === $account->getRol() && !$isAdmin) {

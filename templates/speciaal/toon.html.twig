@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+<h1 class="h3 mb-0">Speciale lijst {{ lijst.label }} <span class="small fw-normal text-body-secondary">· {{ lijst.afgesloten ? 'Afgesloten' : 'Open' }}</span></h1>
+<div class="d-flex gap-2">
+<a class="btn btn-outline-secondary" href="{{ path('app_speciaal_index') }}">Overzicht</a>
+{% if is_granted('LIJST_AFDRUKKEN', lijst) %}<a class="btn btn-outline-secondary" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>{% endif %}
+</div></div>
+<p>{{ lijst.post ? lijst.post.naam }} · {{ lijst.start|date('d/m/Y H:i') }} · {{ lijst.info }}</p>
+{% if lijst.interventienummer is not null %}<p>Interventie #: {{ lijst.interventienummer }}</p>{% endif %}
+{% if not lijst.afgesloten and not app.user.systeemaccount %}
+<form method="post" class="card card-body mb-4" style="max-width:600px">
+<h2 class="h5">Start registreren voor {{ app.user.volledigeNaam }}</h2>
+<p>Je einduur vul je later in via Aanwezigen.</p>
+<label class="form-label" for="moment">Startdatum en -tijd</label><input class="form-control mb-3" id="moment" name="moment" type="datetime-local" required>
+<input type="hidden" name="_token" value="{{ csrf_token('speciaal' ~ lijst.id) }}"><button class="btn btn-primary">Registreren</button>
+</form>{% endif %}
+<h2 class="h5">Aanwezigen</h2><p>{{ mag_afsluiten ? 'Registreer of corrigeer hier de begin- en einduren van het personeel.' : 'Registreer of corrigeer hier je eigen begin- en einduren.' }}</p>
+{% for t in registraties %}<div class="card card-body mb-3">
+<strong>{{ t.persoon.volledigeNaam }}</strong>
+{% include 'lijst/_registratie_info.html.twig' %}
+{% if not lijst.afgesloten %}<form method="post" action="{{ path('app_speciaal_wijzig',{id:lijst.id,tikking:t.id}) }}" class="row g-2 align-items-end mt-2">
+<div class="col-md-4"><label class="form-label" for="begin{{ t.id }}">Begin</label><input class="form-control" id="begin{{ t.id }}" name="start" type="datetime-local" value="{{ t.start|date('Y-m-d\\TH:i') }}" required></div>
+<div class="col-md-4"><label class="form-label" for="einde{{ t.id }}">Einde (leeg = nog aanwezig)</label><input class="form-control" id="einde{{ t.id }}" name="einde" type="datetime-local" value="{{ t.einde ? t.einde|date('Y-m-d\\TH:i') }}"></div>
+<input type="hidden" name="_token" value="{{ csrf_token('eigen_tijden' ~ t.id) }}"><div class="col-md-4"><button class="btn btn-outline-primary">Tijden opslaan</button></div></form>{% else %}
+{% include 'lijst/_registratie_tijden.html.twig' %}
+{% endif %}
+</div>{% else %}<p>Je hebt nog geen registraties op deze lijst.</p>{% endfor %}
+{% if mag_afsluiten and not lijst.afgesloten %}<form method="post" action="{{ path('app_speciaal_afsluiten',{id:lijst.id}) }}" data-bevestig="Deze speciale lijst definitief afsluiten?">
+<p>{{ lijst.openRegistraties }} beginregistratie(s) zonder einde op deze lijst.</p><input type="hidden" name="_token" value="{{ csrf_token('speciaal_afsluiten' ~ lijst.id) }}"><button class="btn btn-danger" {{ lijst.openRegistraties ? 'disabled' }}>Speciale lijst afsluiten</button></form>{% endif %}
+{% if mag_afsluiten and lijst.afgesloten and not lijst.gearchiveerd %}<form method="post" action="{{ path('app_speciaal_heropenen',{id:lijst.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('speciaal_heropenen' ~ lijst.id) }}"><button class="btn btn-outline-warning">Heropenen voor correcties</button></form>{% endif %}
+{% endblock %}

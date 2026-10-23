@@ -52,11 +52,12 @@ final class TikFlowTest extends WebTestCase
             ->setRol(Rol::POST)->setSysteemaccount(true)->setPost($boom)->setVastPeloton(1)->setSessieduur(0);
         $tikpc->setCode($hasher->hashPassword($tikpc, '1111'));
         $jan = (new Persoon())->setAfdeling($afd)->setTiknummer(101)->setNaam('Peeters')->setVoornaam('Jan')
-            ->setRang($rang)->setPeloton(1)->setEmail('jan@example.org')->setCode(md5('4321'));
+            ->setPost($boom)->setRang($rang)->setPeloton(1)->setEmail('jan@example.org')->setCode(md5('4321'));
         $nielLid = (new Persoon())->setAfdeling($niel)->setTiknummer(101)->setNaam('Janssens')->setVoornaam('An')->setCode(md5('4321'));
         $wacht1 = (new Mailinglijst())->setAfdeling($afd)->setNaam('Wacht1')->setPeloton(1)->addLid($jan);
 
-        foreach ([$boom, $afd, $niel, $rang, $gem, $type, $tikpc, $jan, $nielLid, $wacht1] as $e) {
+        $voertuig = (new \App\Entity\Voertuig())->setAfdeling($afd)->setPost($boom)->setNaam('Autopomp Boom');
+        foreach ([$voertuig, $boom, $afd, $niel, $rang, $gem, $type, $tikpc, $jan, $nielLid, $wacht1] as $e) {
             $this->em->persist($e);
         }
         $this->em->flush();
@@ -107,6 +108,12 @@ final class TikFlowTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('.alert-danger', 'reeds geregistreerd');
 
+        // Eerst een chauffeur aanduiden, anders mag de lijst niet afgesloten worden.
+        $voertuig = $this->em->getRepository(\App\Entity\Voertuig::class)->findOneBy([]);
+        $form = $crawler->filter('form[action$="/chauffeur"]')->form(['voertuig' => (string) $voertuig->getId()]);
+        $this->client->submit($form);
+        $crawler = $this->client->followRedirect();
+
         // Afsluiten: lijst gaat naar de mailinglijst van peloton 1
         $form = $crawler->filter('form[action$="/afsluiten"]')->form();
         $this->client->submit($form);
@@ -115,6 +122,7 @@ final class TikFlowTest extends WebTestCase
         $mail = self::getMailerMessage();
         self::assertEmailHeaderSame($mail, 'Bcc', 'jan@example.org');
         self::assertEmailHtmlBodyContains($mail, 'Peeters Jan');
+        self::assertEmailHtmlBodyContains($mail, 'Chf: Autopomp Boom');
 
         $this->em->clear();
         self::assertTrue($this->em->getRepository(Aanwezigheidslijst::class)->find($lijst->getId())->isAfgesloten());

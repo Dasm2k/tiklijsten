@@ -18,9 +18,9 @@ final class FoutmeldingIndienenService
     }
 
     /** @param array<string, mixed> $data Gevalideerde gegevens uit FoutmeldingType. */
-    public function indienen(Persoon $melder, array $data): ?Foutmelding
+    public function indienen(Persoon $melder, array $data, ?\App\Entity\Afdeling $context = null): ?Foutmelding
     {
-        $afdeling = $melder->getAfdeling();
+        $afdeling = $context ?? $melder->getAfdeling();
         if (!$afdeling || !$afdeling->isFoutmeldingenActief()) {
             throw new \LogicException('Foutmeldingen zijn niet actief voor deze afdeling.');
         }

@@ -10,6 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: HerinneringRepository::class)]
 class Herinnering
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 

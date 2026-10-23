@@ -9,6 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: InterventieTypeRepository::class)]
 class InterventieType
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 
@@ -29,6 +30,12 @@ class InterventieType
     #[ORM\Column]
     private bool $inStatistiek = true;
 
+    #[ORM\Column(options: ['default' => true])]
+    private bool $chauffeurVerplicht = true;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $interventienummerVerplicht = false;
+
     public function getId(): ?int { return $this->id; }
     public function getAfdeling(): ?Afdeling { return $this->afdeling; }
     public function setAfdeling(Afdeling $afdeling): static { $this->afdeling = $afdeling; return $this; }
@@ -40,5 +47,9 @@ class InterventieType
     public function setActief(bool $actief): static { $this->actief = $actief; return $this; }
     public function isInStatistiek(): bool { return $this->inStatistiek; }
     public function setInStatistiek(bool $v): static { $this->inStatistiek = $v; return $this; }
+    public function isChauffeurVerplicht(): bool { return $this->chauffeurVerplicht; }
+    public function setChauffeurVerplicht(bool $verplicht): static { $this->chauffeurVerplicht = $verplicht; return $this; }
+    public function isInterventienummerVerplicht(): bool { return $this->interventienummerVerplicht; }
+    public function setInterventienummerVerplicht(bool $verplicht): static { $this->interventienummerVerplicht = $verplicht; return $this; }
     public function __toString(): string { return $this->naam; }
 }

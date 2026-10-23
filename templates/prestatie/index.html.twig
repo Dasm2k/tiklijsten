@@ -43,7 +43,7 @@
                         <td class="tabular">{{ t.lijst.start|format_datetime(pattern: 'EEE dd/MM/yyyy HH:mm', locale: 'nl') }}</td>
                         <td>{{ t.lijst.interventieType ? t.lijst.interventieType.naam }} te {{ t.lijst.gemeente ? t.lijst.gemeente.naam }}</td>
                         <td class="tabular">{{ t.start|date('d/m/Y H:i') }}</td>
-                        <td class="tabular">{{ t.einde|date('d/m/Y H:i') }}</td>
+                        <td class="tabular">{{ t.einde ? t.einde|date('d/m/Y H:i') : 'Nog aanwezig' }}</td>
                         <td class="tabular">{{ t.prestatie|duur }}</td>
                     </tr>
                 {% else %}

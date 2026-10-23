@@ -4,7 +4,8 @@
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Peloton</span><br>{{ lijst.peloton|peloton }}</div>
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Begin</span><br><span class="tabular">{{ lijst.start|date('d/m/Y H:i') }}{{ lijst.tweedeStart ? ' / ' ~ lijst.tweedeStart|date('d/m/Y H:i') }}</span></div>
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Interventie</span><br>{{ lijst.interventieType ? lijst.interventieType.naam }} te {{ lijst.gemeente ? lijst.gemeente.naam }}</div>
-    <div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Bevelvoerder</span><br>{{ m.persoon(lijst.bevelvoerder) }}</div>
+    {% if lijst.interventienummer is not null %}<div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Interventie #</span><br>{{ lijst.interventienummer }}</div>{% endif %}
+    {% if not lijst.speciaal %}<div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Bevelvoerder</span><br>{{ m.persoon(lijst.bevelvoerder) }}</div>{% endif %}
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary">Centralist</span><br>{{ m.persoon(lijst.centralist) }}</div>
     <div class="col-lg-6"><span class="text-body-secondary">Info</span><br>{{ lijst.info ?: '-' }}</div>
 </div>

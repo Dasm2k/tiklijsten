@@ -11,6 +11,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /** Alles gebeurt binnen de afdeling van de aangemelde persoon. */
 abstract class BaseController extends AbstractController
 {
+    public function __construct(private readonly \App\Service\AfdelingContext $afdelingContext) {}
+
     protected function persoon(): Persoon
     {
         $persoon = $this->getUser();
@@ -22,7 +24,7 @@ abstract class BaseController extends AbstractController
 
     protected function afdeling(): Afdeling
     {
-        return $this->persoon()->getAfdeling();
+        return $this->afdelingContext->huidige() ?? throw $this->createAccessDeniedException();
     }
 
     /** Controleert dat een object tot de afdeling van de gebruiker behoort. */

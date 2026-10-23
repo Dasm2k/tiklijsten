@@ -27,8 +27,10 @@ final class TikController extends BaseController
     {
         $persoon = $this->persoon();
         $lijst = $service->nieuw($persoon);
+        $lijst->setAfdeling($this->afdeling());
         $form = $this->createForm(LijstType::class, $lijst, [
             'afdeling' => $this->afdeling(),
+            'soort_kiezen' => true,
             'peloton_kiezen' => null === $persoon->getVastPeloton(),
             'post_kiezen' => null === $persoon->getPost(),
         ]);
@@ -46,10 +48,14 @@ final class TikController extends BaseController
     }
 
     #[Route('/lijst/{id}', name: 'app_tik_lijst', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function lijst(int $id, AanwezigheidslijstRepository $lijsten, PersoonRepository $personen, Request $request): Response
+    public function lijst(int $id, AanwezigheidslijstRepository $lijsten, PersoonRepository $personen, Request $request, \App\Repository\VoertuigRepository $voertuigen, \App\Service\ChauffeurConfiguratie $chauffeurConfiguratie, \App\Service\SpecialeLijstRechten $rechten): Response
     {
         $lijst = $this->lijstOf404($lijsten, $id);
         return $this->render('tik/lijst.html.twig', [
+            'mag_speciaal_afsluiten' => $rechten->magAfsluiten($lijst, $this->persoon()),
+            'chauffeurs_actief' => $chauffeurConfiguratie->isActief($lijst),
+            'chauffeur_verplicht' => $chauffeurConfiguratie->isVerplicht($lijst),
+            'chauffeur_voertuigen' => $voertuigen->findBy(['afdeling' => $this->afdeling(), 'actief' => true], ['roepnaam' => 'ASC', 'naam' => 'ASC']),
             'lijst' => $lijst,
             'andere_open' => $lijsten->open($this->afdeling(), $this->isGranted('ROLE_ADMIN') ? null : $this->persoon()->getPost()),
             'peloton' => $lijst->getPeloton() ? $personen->vanPeloton($this->afdeling(), $lijst->getPeloton()) : [],
@@ -58,8 +64,42 @@ final class TikController extends BaseController
         ]);
     }
 
+    #[Route('/lijst/{id}/tikking/{tikking}/chauffeur', name: 'app_tik_chauffeur', requirements: ['id' => '\d+', 'tikking' => '\d+'], methods: ['POST'])]
+    public function chauffeur(int $id, int $tikking, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em, \App\Service\ChauffeurConfiguratie $chauffeurConfiguratie): Response
+    {
+        $em->wrapInTransaction(function () use ($id, $tikking, $request, $lijsten, $em, $chauffeurConfiguratie): void {
+            $lijst = $this->lijstOf404($lijsten, $id);
+            $em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            if ($lijst->isAfgesloten() || !$this->csrfOk($request, 'chauffeur'.$tikking)) {
+                throw $this->createAccessDeniedException('De lijst is afgesloten of het formulier is verlopen.');
+            }
+            if (!$chauffeurConfiguratie->isActief($lijst)) { throw $this->createAccessDeniedException('Chauffeursregistratie is uitgeschakeld voor deze post.'); }
+            $t = $em->find(Tikking::class, $tikking);
+            if (!$t || $t->getLijst()?->getId() !== $lijst->getId()) {
+                throw $this->createNotFoundException();
+            }
+            $waarde = (string) $request->request->get('voertuig', '');
+            if ('__behouden' === $waarde) { return; }
+            $voertuig = null;
+            if ('' !== $waarde) {
+                $voertuig = ctype_digit($waarde) ? $em->find(\App\Entity\Voertuig::class, (int) $waarde) : null;
+                if (!$voertuig || !$voertuig->isActief()
+                    || $voertuig->getAfdeling()?->getId() !== $lijst->getAfdeling()->getId()
+                    || !$t->getPersoon()->getPost()
+                    || $voertuig->getPost()?->getId() !== $t->getPersoon()->getPost()->getId()) {
+                    throw $this->createAccessDeniedException('Kies een actief voertuig van de post van dit personeelslid.');
+                }
+            }
+            if ($voertuig?->getId() !== $t->getChauffeurVoertuig()?->getId()) {
+                $t->setChauffeurVoertuig($voertuig);
+            }
+        });
+        $this->addFlash('success', 'Chauffeursregistratie opgeslagen.');
+        return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
+    }
+
     #[Route('/lijst/{id}/in', name: 'app_tik_in', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function tikIn(int $id, Request $request, AanwezigheidslijstRepository $lijsten, TikService $tik): Response
+    public function tikIn(int $id, Request $request, AanwezigheidslijstRepository $lijsten, TikService $tik, \App\Service\SpecialeTikService $specialeTik): Response
     {
         $lijst = $this->lijstOf404($lijsten, $id);
         if (!$this->csrfOk($request, 'tik'.$lijst->getId())) {
@@ -67,7 +107,13 @@ final class TikController extends BaseController
             return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
         }
         try {
+            if ($lijst->isSpeciaal()) {
+                $persoon = $tik->controleerVoorFoutmelding($lijst->getAfdeling(), (string) $request->request->get('tiknummer'), (string) $request->request->get('code'));
+                if (!in_array($request->request->get('actie', 'begin'), ['begin'], true)) { throw new TikFout('Registreer het einduur via Aanwezigen.'); }
+                $tikking = $specialeTik->registreer($lijst, $persoon, 'begin', \App\Service\SpecialeTikService::tijd((string) $request->request->get('moment')));
+            } else {
             $tikking = $tik->tikIn($lijst, (string) $request->request->get('tiknummer'), (string) $request->request->get('code'), '2' === $request->request->get('beginuur'));
+            }
             $this->addFlash('success', $tikking->getPersoon()->getVolledigeNaam().' is ingetikt.');
         } catch (TikFout $e) {
             $this->addFlash('danger', $e->getMessage());
@@ -97,11 +143,25 @@ final class TikController extends BaseController
         return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
     }
 
+    #[Route('/lijst/{id}/tikking/{tikking}/tijden', name: 'app_tik_tijden', requirements: ['id'=>'\d+', 'tikking'=>'\d+'], methods: ['POST'])]
+    public function tijden(int $id, int $tikking, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em, TikService $tik, \App\Service\SpecialeTikService $service): Response
+    {
+        $lijst = $this->lijstOf404($lijsten,$id); $registratie = $em->find(Tikking::class,$tikking);
+        if (!$registratie || $registratie->getLijst()?->getId() !== $id || !$this->csrfOk($request,'tijden'.$tikking)) { throw $this->createNotFoundException(); }
+        try {
+            $persoon = $tik->controleerUitvoerder($lijst->getAfdeling(), (string) $request->request->get('wijzig_tiknummer', $registratie->getPersoon()->getTiknummer()), (string) $request->request->get('code'));
+            $einde = trim((string) $request->request->get('einde'));
+            $service->wijzig($registratie, $persoon, \App\Service\SpecialeTikService::tijd((string)$request->request->get('start')), '' === $einde ? null : \App\Service\SpecialeTikService::tijd($einde));
+            $this->addFlash('success','Je registratie is aangepast.');
+        } catch (TikFout $e) { $this->addFlash('danger',$e->getMessage()); }
+        return $this->redirectToRoute('app_tik_lijst',['id'=>$id]);
+    }
+
     #[Route('/lijst/{id}/tweede-beginuur', name: 'app_tik_tweede_start', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function tweedeStart(int $id, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em, ValidatorInterface $validator): Response
     {
         $lijst = $this->lijstOf404($lijsten, $id);
-        if (!$this->csrfOk($request, 'tweede'.$lijst->getId()) || $lijst->getTweedeStart() || $lijst->isAfgesloten()) {
+        if (!$this->csrfOk($request, 'tweede'.$lijst->getId()) || $lijst->isSpeciaal() || $lijst->getTweedeStart() || $lijst->isAfgesloten()) {
             return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
         }
         $waarde = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', (string) $request->request->get('tweede_start')) ?: null;
@@ -116,13 +176,22 @@ final class TikController extends BaseController
     }
 
     #[Route('/lijst/{id}/afsluiten', name: 'app_tik_afsluiten', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function afsluiten(int $id, Request $request, AanwezigheidslijstRepository $lijsten, LijstService $service): Response
+    public function afsluiten(int $id, Request $request, AanwezigheidslijstRepository $lijsten, LijstService $service, TikService $tik, \App\Service\SpecialeLijstRechten $rechten): Response
     {
         $lijst = $this->lijstOf404($lijsten, $id);
         if (!$this->csrfOk($request, 'afsluiten'.$lijst->getId()) || $lijst->isAfgesloten()) {
             return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
         }
-        $aantal = $service->sluitAf($lijst);
+        try {
+            $door = $this->persoon();
+            if ($lijst->isSpeciaal() && !$rechten->magAfsluiten($lijst, $door)) {
+                $door = $tik->controleerUitvoerder($lijst->getAfdeling(), (string) $request->request->get('afsluit_tiknummer'), (string) $request->request->get('afsluit_code'));
+            }
+            $aantal = $service->sluitAf($lijst, $door);
+        } catch (TikFout $e) {
+            $this->addFlash('warning', $e->getMessage());
+            return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
+        }
         $this->addFlash('success', sprintf('Lijst %s is afgesloten%s.', $lijst->getLabel(), $aantal ? ' en gemaild naar '.$aantal.' ontvanger(s)' : ''));
         // Afdrukken en daarna terug naar het tikscherm.
         return $this->redirectToRoute('app_lijst_afdrukken', ['id' => $id, 'terug' => 'tik']);

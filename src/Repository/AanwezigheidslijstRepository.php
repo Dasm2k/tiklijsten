@@ -61,9 +61,10 @@ class AanwezigheidslijstRepository extends ServiceEntityRepository
             ->orderBy('l.start', 'DESC')->addOrderBy('l.id', 'DESC')
             ->setFirstResult(max(0, $pagina - 1) * $perPagina)
             ->setMaxResults($perPagina);
-        if ($zoek) {
+        if (null !== $zoek && '' !== $zoek) {
             if (ctype_digit(ltrim($zoek, '#'))) {
-                $qb->andWhere('l.nummer = :nr')->setParameter('nr', (int) ltrim($zoek, '#'));
+                $qb->andWhere(str_starts_with($zoek, '#') ? 'COALESCE(l.volgnummer, l.nummer) = :nr' : '(COALESCE(l.volgnummer, l.nummer) = :nr OR l.interventienummer = :nr)')
+                    ->setParameter('nr', (int) ltrim($zoek, '#'));
             } else {
                 $qb->andWhere('g.naam LIKE :z OR t.naam LIKE :z OR l.info LIKE :z')->setParameter('z', '%'.$zoek.'%');
             }
@@ -73,17 +74,13 @@ class AanwezigheidslijstRepository extends ServiceEntityRepository
 
     public function volgendNummer(Afdeling $afdeling): int
     {
-        return 1 + (int) $this->createQueryBuilder('l')->select('MAX(l.nummer)')
-            ->andWhere('l.afdeling = :a')->setParameter('a', $afdeling)
-            ->getQuery()->getSingleScalarResult();
+        // Include deleted lists so a historical list number is never recycled.
+        return 1 + (int) $this->getEntityManager()->getConnection()->fetchOne('SELECT MAX(nummer) FROM aanwezigheidslijst WHERE afdeling_id = ?',[$afdeling->getId()]);
     }
 
     public function volgendVolgnummer(Afdeling $afdeling, int $peloton): int
     {
-        return 1 + (int) $this->createQueryBuilder('l')->select('MAX(l.volgnummer)')
-            ->andWhere('l.afdeling = :a')->setParameter('a', $afdeling)
-            ->andWhere('l.peloton = :p')->setParameter('p', $peloton)
-            ->getQuery()->getSingleScalarResult();
+        return 1 + (int) $this->getEntityManager()->getConnection()->fetchOne('SELECT MAX(volgnummer) FROM aanwezigheidslijst WHERE afdeling_id = ? AND peloton = ?',[$afdeling->getId(),$peloton]);
     }
 
     /** @return array<int, array{label: string, aantal: int}> */
@@ -119,7 +116,7 @@ class AanwezigheidslijstRepository extends ServiceEntityRepository
             'SELECT YEAR(l.start) AS jaar, l.peloton, COUNT(*) AS aantal
                FROM aanwezigheidslijst l
                LEFT JOIN interventie_type t ON t.id = l.interventie_type_id
-              WHERE l.afdeling_id = :a AND (t.id IS NULL OR t.in_statistiek = 1)
+              WHERE l.verwijderd_op IS NULL AND l.afdeling_id = :a AND (t.id IS NULL OR t.in_statistiek = 1)
               GROUP BY YEAR(l.start), l.peloton
               ORDER BY jaar DESC, l.peloton',
             ['a' => $afdeling->getId()]

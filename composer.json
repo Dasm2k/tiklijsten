@@ -18,8 +18,9 @@
         "phpoffice/phpspreadsheet": "^5.10",
         "symfony/asset": "8.1.*",
         "symfony/console": "8.1.*",
-        "symfony/debug": "^4.4",
+        "symfony/debug-bundle": "^8.1",
         "symfony/dotenv": "8.1.*",
+        "symfony/error-handler": "^8.1",
         "symfony/expression-language": "8.1.*",
         "symfony/form": "8.1.*",
         "symfony/framework-bundle": "8.1.*",
@@ -41,7 +42,9 @@
         "phpunit/phpunit": "^12.4",
         "symfony/browser-kit": "8.1.*",
         "symfony/css-selector": "8.1.*",
-        "symfony/phpunit-bridge": "8.1.*"
+        "symfony/phpunit-bridge": "8.1.*",
+        "symfony/profiler-pack": "^1.0",
+        "symfony/web-profiler-bundle": "*"
     },
     "config": {
         "allow-plugins": {

@@ -60,7 +60,7 @@ final class PrestatieController extends BaseController
                 $l->getInterventieType()?->getNaam(),
                 $l->getGemeente()?->getNaam(),
                 $t->getStart()?->format('d/m/Y H:i'),
-                $t->getEinde()->format('d/m/Y H:i'),
+                $t->getEinde()?->format('d/m/Y H:i') ?? 'Nog aanwezig',
                 sprintf('%d:%02d', intdiv($sec, 3600), intdiv($sec % 3600, 60)),
                 round($sec / 3600, 2),
             ], null, 'A'.$rij++);

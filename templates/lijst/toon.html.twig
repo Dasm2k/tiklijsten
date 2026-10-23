@@ -5,7 +5,7 @@
         <h1 class="h3 mb-0">Aanwezigheidslijst {{ lijst.label }} {{ m.lijst_status(lijst) }}</h1>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" href="{{ path('app_lijst_bewerken', {id: lijst.id}) }}"><i class="bi bi-pencil"></i> Bewerken</a>
-            {% if is_granted('ROLE_PERSONEEL') %}<a class="btn btn-outline-secondary" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>{% endif %}
+            {% if is_granted('LIJST_AFDRUKKEN', lijst) %}<a class="btn btn-outline-secondary" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>{% endif %}
         </div>
     </div>
     <div class="card mb-4"><div class="card-body">{% include 'lijst/_kop.html.twig' %}</div></div>

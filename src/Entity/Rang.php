@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: RangRepository::class)]
 class Rang
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 

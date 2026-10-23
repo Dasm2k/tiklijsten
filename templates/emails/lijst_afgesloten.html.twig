@@ -3,6 +3,7 @@
     <h2 style="margin-top:0">Aanwezigheidslijst {{ lijst.label }}</h2>
     <p style="margin:0 0 4px">{{ lijst.peloton|peloton|capitalize }} · {{ lijst.start|date('d/m/Y H:i') }}</p>
     <p style="margin:0 0 4px">{{ lijst.interventieType ? lijst.interventieType.naam }} te {{ lijst.gemeente ? lijst.gemeente.naam }}</p>
+    {% if lijst.interventienummer is not null %}<p style="margin:0 0 4px">Interventie #: {{ lijst.interventienummer }}</p>{% endif %}
     {% if lijst.info %}<p style="margin:0 0 4px">Info: {{ lijst.info }}</p>{% endif %}
     <p>Er is een interventielijst afgesloten. <a href="{{ url('app_lijst_toon', {id: lijst.id}) }}" style="color:#b3151b">Bekijk de lijst online</a>.</p>
     <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-size: 13px;">
@@ -11,9 +12,9 @@
             {% set p = t.persoon %}
             <tr style="border-top:1px solid #dee2e6;{{ p.beroeps ? ' font-weight:bold; font-style:italic;' }}">
                 <td>{{ p.tiknummer }}</td><td>{{ p.zonenummer }}</td><td>{{ p.post ? p.post.code }}</td><td>{{ p.rang ? p.rang.kort }}</td>
-                <td>{{ p.naam }} {{ p.voornaam }}</td><td>{{ t.start|date('d/m/Y H:i') }}</td><td>{{ t.einde|date('d/m/Y H:i') }}</td><td>{{ t.prestatie|duur }}</td>
+                <td>{{ p.naam }} {{ p.voornaam }}{% if t.chauffeurVoertuigNaam %} — Chf: {{ t.chauffeurVoertuigNaam }}{% endif %}</td><td>{{ t.start|date('d/m/Y H:i') }}</td><td>{{ t.einde ? t.einde|date('d/m/Y H:i') : 'Nog aanwezig' }}</td><td>{{ t.prestatie|duur }}</td>
             </tr>
         {% endfor %}
     </table>
-    <p><strong>Aanwezigen totaal: {{ tikkingen|length }}</strong></p>
+    <p><strong>Aanwezigen totaal: {{ lijst.aantalAanwezigen }}{% if lijst.speciaal %} · Registraties: {{ tikkingen|length }}{% endif %}</strong></p>
 {% endblock %}

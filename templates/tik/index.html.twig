@@ -2,7 +2,7 @@
 {% block stylesheets %}<link rel="stylesheet" href="{{ asset('vendor/tom-select/tom-select.bootstrap5.min.css') }}">{% endblock %}
 {% block javascripts %}<script src="{{ asset('vendor/tom-select/tom-select.complete.min.js') }}"></script>{% endblock %}
 {% block body %}
-    {% if is_granted('ROLE_POST') and app.user.afdeling.foutmeldingenActief %}
+    {% if is_granted('ROLE_POST') and huidige_afdeling().foutmeldingenActief %}
         <div class="d-flex justify-content-end mb-3">
             <a class="btn btn-outline-primary" href="{{ path('app_fout_post_aanmelden') }}"><i class="bi bi-wrench-adjustable"></i> Foutmelding inleggen</a>
         </div>
@@ -18,7 +18,8 @@
                     {% if form.peloton is defined %}{{ form_row(form.peloton) }}{% endif %}
                     {{ form_row(form.gemeente) }}
                     {{ form_row(form.interventieType) }}
-                    {{ form_row(form.bevelvoerder) }}
+                    {{ form_row(form.interventienummer) }}
+                    <div data-bevelvoerder {{ form.bevelvoerder.vars.disabled ? 'hidden' }}>{{ form_row(form.bevelvoerder) }}</div>
                     {{ form_rest(form) }}
                     <button class="btn btn-primary btn-lg w-100" type="submit"><i class="bi bi-check2-circle"></i> Lijst maken</button>
                     {{ form_end(form) }}
@@ -32,12 +33,13 @@
                     {% for lijst in open %}
                         <a class="list-group-item list-group-item-action" href="{{ path('app_tik_lijst', {id: lijst.id}) }}">
                             <div class="d-flex justify-content-between">
-                                <strong>{{ lijst.label }} · {{ lijst.interventieType ? lijst.interventieType.naam }}</strong>
+                                <strong>{{ lijst.speciaal ? 'Speciale lijst ' }}{{ lijst.label }} · {{ lijst.interventieType ? lijst.interventieType.naam }}</strong>
                                 <span class="tabular">{{ lijst.start|date('d/m/Y H:i') }}</span>
                             </div>
                             <div class="small text-body-secondary">
-                                {{ lijst.post ? lijst.post.naam ~ ' · ' }}{{ lijst.peloton|peloton }} · {{ lijst.gemeente ? lijst.gemeente.naam }} · Bevel: {{ lijst.bevelvoerder ? lijst.bevelvoerder.naamMetRang : '-' }}
+                                {{ lijst.post ? lijst.post.naam ~ ' · ' }}{{ lijst.peloton|peloton }} · {{ lijst.gemeente ? lijst.gemeente.naam }}{% if not lijst.speciaal %} · Bevel: {{ lijst.bevelvoerder ? lijst.bevelvoerder.naamMetRang : '-' }}{% endif %}
                                 {{ lijst.info ? ' · ' ~ lijst.info }}
+                                {% if lijst.interventienummer is not null %} · Interventie #: {{ lijst.interventienummer }}{% endif %}
                             </div>
                         </a>
                     {% else %}

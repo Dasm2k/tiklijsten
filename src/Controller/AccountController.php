@@ -16,6 +16,7 @@ final class AccountController extends BaseController
     #[IsGranted('ROLE_LID')]
     public function code(Request $request, UserPasswordHasherInterface $hasher, EntityManagerInterface $em): Response
     {
+        if ($this->persoon()->isSuperadmin()) { throw $this->createAccessDeniedException('Wijzig het superadminwachtwoord via app:superadmin:instellen.'); }
         $form = $this->createForm(CodeWijzigenType::class);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {

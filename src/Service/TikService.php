@@ -21,6 +21,7 @@ final class TikService
         private readonly EntityManagerInterface $em,
         #[Target('tikken')]
         private readonly RateLimiterFactoryInterface $tikkenLimiter,
+        private readonly AuditContext $audit,
     ) {
     }
 
@@ -38,6 +39,16 @@ final class TikService
     public function controleerVoorFoutmelding(Afdeling $afdeling, string $tiknummer, string $code): Persoon
     {
         return $this->controleerPersoon($afdeling, $tiknummer, $code, true);
+    }
+
+    /** Persoonlijke bevestiging op de kiosk; superadmin blijft achter de 2FA-login. */
+    public function controleerUitvoerder(Afdeling $afdeling, string $tiknummer, string $code): Persoon
+    {
+        $tiknummer = trim($tiknummer);
+        $persoon = ctype_digit($tiknummer) ? $this->personen->findOneInAfdeling($afdeling, (int) $tiknummer) : null;
+        if (!$persoon || !$persoon->isActief() || $persoon->isSuperadmin()) { throw new TikFout('Gebruik een actief persoonlijk account. Superadmin meldt aan via 2FA.'); }
+        $this->controleerCode($persoon,$code,'Code niet juist.');
+        return $persoon;
     }
 
     private function controleerPersoon(Afdeling $afdeling, string $tiknummer, string $code, bool $actiefVereist = false): Persoon
@@ -66,13 +77,19 @@ final class TikService
         if ($lijst->isAfgesloten()) {
             throw new TikFout('Deze lijst is reeds afgesloten.');
         }
+        if ($lijst->isSpeciaal()) { throw new TikFout('Kies Begin of Einde op de speciale lijst.'); }
         $persoon = $this->controleer($lijst, $tiknummer, $code);
+        $this->audit->namens($persoon);
+        return $this->em->wrapInTransaction(function () use ($lijst, $persoon, $tweedeStart): Tikking {
+        $this->em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+        if ($lijst->isAfgesloten()) { throw new TikFout('Deze lijst is reeds afgesloten.'); }
         if ($lijst->heeftGetikt($persoon)) {
             throw new TikFout($persoon->getVolledigeNaam().' is reeds geregistreerd voor deze interventie.');
         }
 
         $nu = new \DateTimeImmutable();
-        $tikking = (new Tikking())->setPersoon($persoon)->setEinde($nu);
+        $nummer = 1 + (int) $this->em->getConnection()->fetchOne('SELECT MAX(volgnummer) FROM tikking WHERE lijst_id = ? AND persoon_id = ?', [$lijst->getId(), $persoon->getId()]);
+        $tikking = (new Tikking())->setVolgnummer($nummer)->setPersoon($persoon)->setEinde($nu);
         if ($tweedeStart && $lijst->getTweedeStart()) {
             $tikking->setStart($lijst->getTweedeStart());
         }
@@ -85,17 +102,19 @@ final class TikService
         $this->em->flush();
 
         return $tikking;
+        });
     }
 
     /** Een tikking verwijderen kan enkel met de code van de betrokkene. @throws TikFout */
     public function verwijder(Aanwezigheidslijst $lijst, Tikking $tikking, string $code): void
     {
-        if ($lijst->isAfgesloten()) {
-            throw new TikFout('Deze lijst is reeds afgesloten.');
-        }
         $this->controleerCode($tikking->getPersoon(), $code, 'Verwijderen mislukt: code niet juist.');
-        $lijst->removeTikking($tikking);
-        $this->em->flush();
+        $this->audit->namens($tikking->getPersoon());
+        $this->em->wrapInTransaction(function () use ($lijst,$tikking): void {
+            $this->em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            if ($lijst->isAfgesloten()) { throw new TikFout('Deze lijst is reeds afgesloten.'); }
+            $tikking->markeerVerwijderd($tikking->getPersoon()->getId());
+        });
     }
 
     /** Beperkt het aantal foute codes per persoon (4 cijfers zijn anders snel geraden). @throws TikFout */

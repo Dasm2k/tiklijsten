@@ -120,6 +120,9 @@ final class LegacyImporter
 
     private function verwijderAfdeling(int $id): void
     {
+        if ($this->doel->createSchemaManager()->tablesExist(['handeling'])) {
+            throw new \RuntimeException('Een bestaande afdeling overschrijven is geblokkeerd om de historiek te bewaren. Importeer onder een nieuwe afdelingsslug.');
+        }
         // Volgorde respecteert de foreign keys (ook als ON DELETE CASCADE niet zou bestaan).
         $this->doel->executeStatement('DELETE FROM foutbericht WHERE foutmelding_id IN (SELECT id FROM foutmelding WHERE afdeling_id = ?)', [$id]);
         $this->doel->executeStatement('DELETE FROM foutmelding WHERE afdeling_id = ?', [$id]);
@@ -202,8 +205,9 @@ final class LegacyImporter
 
     private function laadPosten(): void
     {
-        foreach ($this->doel->fetchAllAssociative('SELECT id, naam, gemeente FROM post') as $p) {
+        foreach ($this->doel->fetchAllAssociative('SELECT id, code, naam, gemeente FROM post') as $p) {
             $this->posten[self::sleutel($p['naam'])] = (int) $p['id'];
+            $this->posten[self::sleutel($p['code'])] = (int) $p['id'];
             if ($p['gemeente']) {
                 $this->posten[self::sleutel($p['gemeente'])] ??= (int) $p['id'];
             }

@@ -48,7 +48,7 @@ final class FoutmeldingController extends BaseController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $fout = $service->indienen($persoon, $form->getData());
+            $fout = $service->indienen($persoon, $form->getData(), $this->afdeling());
             if (!$fout) {
                 $this->addFlash('success', 'De melding van het kadaver is doorgestuurd.');
                 return $this->redirectToRoute('app_fout_index');

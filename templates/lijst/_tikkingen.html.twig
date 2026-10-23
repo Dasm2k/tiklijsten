@@ -8,9 +8,9 @@
             <td class="tabular">{{ p.zonenummer }}</td>
             <td>{{ p.post ? p.post.code }}</td>
             <td>{{ p.rang ? p.rang.kort }}</td>
-            <td>{{ p.naam }} {{ p.voornaam }}</td>
+            <td>{{ p.naam }} {{ p.voornaam }}{% include 'lijst/_registratie_info.html.twig' %}</td>
             <td class="tabular">{{ t.start|date('d/m/Y H:i') }}</td>
-            <td class="tabular">{{ t.einde|date('d/m/Y H:i') }}</td>
+            <td class="tabular">{{ t.einde ? t.einde|date('d/m/Y H:i') : 'Nog aanwezig' }}</td>
             <td class="tabular">{{ t.prestatie|duur }}</td>
             {% if verwijderbaar|default(false) %}
                 <td class="text-end">
@@ -25,5 +25,5 @@
         <tr><td colspan="9" class="text-center text-body-secondary py-3">Niemand ingetikt.</td></tr>
     {% endfor %}
     </tbody>
-    <tfoot><tr><th colspan="9">Aanwezigen totaal: {{ tikkingen|length }}</th></tr></tfoot>
+    <tfoot><tr><th colspan="9">Aanwezigen totaal: {{ lijst.aantalAanwezigen }}{% if lijst.speciaal %} · Registraties: {{ tikkingen|length }}{% endif %}</th></tr></tfoot>
 </table>

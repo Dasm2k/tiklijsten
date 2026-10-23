@@ -62,7 +62,7 @@ final class PersoonType extends AbstractType
             ->add('rol', EnumType::class, [
                 'class' => Rol::class,
                 'choice_label' => fn (Rol $r) => $r->label(),
-                'choice_filter' => fn (?Rol $r) => null === $r || (Rol::POST !== $r && $r->gewicht() <= $maxRol->gewicht()),
+                'choice_filter' => fn (?Rol $r) => null === $r || (Rol::SUPERADMIN !== $r && Rol::POST !== $r && $r->gewicht() <= $maxRol->gewicht()),
                 'help' => 'Je kan geen hogere rol toekennen dan je eigen rol.',
             ]);
     }

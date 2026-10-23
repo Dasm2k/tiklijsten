@@ -15,6 +15,9 @@ final class LijstService
         private readonly MailinglijstRepository $mailinglijsten,
         private readonly EntityManagerInterface $em,
         private readonly Mailer $mailer,
+        private readonly ChauffeurConfiguratie $chauffeurConfiguratie,
+        private readonly SpecialeLijstRechten $rechten,
+        private readonly AuditContext $audit,
     ) {
     }
 
@@ -24,8 +27,7 @@ final class LijstService
         $afdeling = $aanmaker->getAfdeling();
         $lijst = (new Aanwezigheidslijst())
             ->setAfdeling($afdeling)
-            ->setPost($aanmaker->getPost())
-            ->setStart((new \DateTimeImmutable())->setTime((int) date('H'), (int) date('i')));
+            ->setPost($aanmaker->getPost());
         if ($aanmaker->getVastPeloton()) {
             $lijst->setPeloton($aanmaker->getVastPeloton());
         } else {
@@ -44,10 +46,18 @@ final class LijstService
     }
 
     /** Lijst afsluiten en de aanwezigheden mailen naar de mailinglijst(en) van het peloton. */
-    public function sluitAf(Aanwezigheidslijst $lijst): int
+    public function sluitAf(Aanwezigheidslijst $lijst, ?Persoon $door = null): int
     {
-        $lijst->setAfgesloten(true);
-        $this->em->flush();
+        if ($door) { $this->audit->namens($door); }
+        $gesloten = $this->em->wrapInTransaction(function () use ($lijst, $door): bool {
+            $this->em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            if ($lijst->isAfgesloten()) { return false; }
+            $this->controleerAfsluiten($lijst, $door);
+            $this->vereisChauffeur($lijst);
+            $lijst->setAfgesloten(true);
+            return true;
+        });
+        if (!$gesloten) { return 0; }
 
         $ontvangers = $this->mailinglijsten->ontvangersAfgeslotenLijst($lijst->getAfdeling(), $lijst->getPeloton());
         return $this->mailer->stuur(
@@ -57,6 +67,27 @@ final class LijstService
             'emails/lijst_afgesloten.html.twig',
             ['lijst' => $lijst, 'tikkingen' => self::gesorteerdeTikkingen($lijst)],
         );
+    }
+
+    public function controleerAfsluiten(Aanwezigheidslijst $lijst, ?Persoon $door = null): void
+    {
+        if ($lijst->isInterventienummerVerplicht() && null === $lijst->getInterventienummer()) {
+            throw new TikFout('Vul eerst het verplichte interventienummer in via Lijst bewerken.');
+        }
+        if (!$lijst->isSpeciaal()) { return; }
+        if (!$this->rechten->magAfsluiten($lijst, $door ?? $this->audit->actor())) { throw new TikFout('Een speciale lijst kan alleen afgesloten worden door een beheerder, sergeant of adjudant.'); }
+        $open = (int) $this->em->createQuery('SELECT COUNT(t.id) FROM App\\Entity\\Tikking t WHERE t.lijst = :lijst AND t.einde IS NULL')->setParameter('lijst',$lijst)->getSingleScalarResult();
+        if ($open) { throw new TikFout('Er zijn nog '.$open.' open beginregistraties. Registreer eerst alle einduren.'); }
+    }
+
+    public function vereisChauffeur(Aanwezigheidslijst $lijst): void
+    {
+        if (!$this->chauffeurConfiguratie->isVerplicht($lijst)) { return; }
+        $aantal = (int) $this->em->createQuery('SELECT COUNT(t.id) FROM App\\Entity\\Tikking t WHERE t.lijst = :lijst AND t.chauffeurVoertuig IS NOT NULL')
+            ->setParameter('lijst', $lijst)->getSingleScalarResult();
+        if (0 === $aantal) {
+            throw new TikFout('Duid eerst minstens één chauffeur aan door op de naam van een aanwezige te klikken en een voertuig te kiezen.');
+        }
     }
 
     /** @return \App\Entity\Tikking[] gesorteerd op naam */

@@ -7,6 +7,12 @@ use Twig\TwigFilter;
 
 final class AppExtension extends AbstractExtension
 {
+    public function __construct(private readonly \App\Service\AfdelingContext $context) {}
+    public function getFunctions(): array
+    {
+        return [new \Twig\TwigFunction('huidige_afdeling', [$this->context, 'huidige'])];
+    }
+
     public function getFilters(): array
     {
         return [

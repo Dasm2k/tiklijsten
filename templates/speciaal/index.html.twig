@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Speciale lijsten</h1>
+        <nav class="btn-group" aria-label="Status speciale lijsten">
+            {% for waarde, label in {'': 'Alle', open: 'Open', afgesloten: 'Afgesloten'} %}
+                <a class="btn btn-outline-secondary {{ status == waarde ? 'active' }}" href="{{ path('app_speciaal_index', waarde ? {status: waarde} : {}) }}" {{ status == waarde ? 'aria-current="page"' }}>{{ label }}</a>
+            {% endfor %}
+        </nav>
+    </div>
+    <p class="text-body-secondary">Open een lijst om je start te registreren of je tijden via Aanwezigen aan te passen. Afdrukken kan nadat de lijst is afgesloten.</p>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Lijst</th><th>Post</th><th>Begin</th><th>Interventie</th><th>Extra info</th><th>Status</th><th class="text-end">Acties</th></tr></thead>
+                <tbody>
+                {% for lijst in lijsten %}
+                    <tr>
+                        <td class="text-nowrap"><a href="{{ path('app_speciaal_toon', {id: lijst.id}) }}">{{ lijst.label }}</a></td>
+                        <td>{{ lijst.post ? lijst.post.naam : '-' }}</td>
+                        <td class="tabular text-nowrap">{{ lijst.start|date('d/m/Y H:i') }}</td>
+                        <td>{{ lijst.interventieType ? lijst.interventieType.naam : '-' }}{% if lijst.gemeente %}<div class="small text-body-secondary">{{ lijst.gemeente.naam }}</div>{% endif %}{% if lijst.interventienummer is not null %}<div class="small text-body-secondary">Interventie #: {{ lijst.interventienummer }}</div>{% endif %}</td>
+                        <td>{{ lijst.info ?: '-' }}</td>
+                        <td class="text-nowrap">{{ lijst.afgesloten ? 'Afgesloten' : 'Open' }}</td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ path('app_speciaal_toon', {id: lijst.id}) }}">Openen</a>
+                            {% if is_granted('LIJST_AFDRUKKEN', lijst) %}
+                                <a class="btn btn-sm btn-outline-secondary" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="text-center text-body-secondary py-4">Geen speciale lijsten gevonden.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

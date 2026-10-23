@@ -8,6 +8,7 @@ namespace App\Enum;
  */
 enum Rol: string
 {
+    case SUPERADMIN = 'superadmin';
     case LID = 'lid';             // level 1-49
     case FOUTEN = 'fouten';       // level >= 50: foutmeldingen opvolgen
     case LIJSTEN = 'lijsten';     // level >= 2200: aanwezigheidslijsten bekijken/bewerken
@@ -25,6 +26,7 @@ enum Rol: string
     public function label(): string
     {
         return match ($this) {
+            self::SUPERADMIN => 'Superadministrator',
             self::LID => 'Lid',
             self::FOUTEN => 'Foutmeldingen opvolgen',
             self::LIJSTEN => 'Lijsten beheren',
@@ -40,6 +42,7 @@ enum Rol: string
     public function gewicht(): int
     {
         return match ($this) {
+            self::SUPERADMIN => 8,
             self::LID => 1,
             self::FOUTEN => 2,
             self::LIJSTEN => 3,

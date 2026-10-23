@@ -1,0 +1,6 @@
+{% if t.lijst.speciaal or t.chauffeurVoertuigNaam %}
+    <div class="small mt-1 registratie-info">
+        {% if t.lijst.speciaal %}<div>Periode {{ t.volgnummer }}</div>{% endif %}
+        {% if t.chauffeurVoertuigNaam %}<div>Chf: {{ t.chauffeurVoertuigNaam }}</div>{% endif %}
+    </div>
+{% endif %}

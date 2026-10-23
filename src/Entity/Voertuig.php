@@ -9,6 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: VoertuigRepository::class)]
 class Voertuig
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 
@@ -27,6 +28,21 @@ class Voertuig
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $keuring = null;
+
+    #[ORM\ManyToOne, ORM\JoinColumn(onDelete: 'RESTRICT')]
+    private ?Post $post = null;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $actief = true;
+
+    public function getPost(): ?Post { return $this->post; }
+    public function setPost(?Post $post): static { $this->post = $post; return $this; }
+    public function isActief(): bool { return $this->actief; }
+    public function setActief(bool $actief): static { $this->actief = $actief; return $this; }
+    public function getChauffeurLabel(): string
+    {
+        return implode(' · ', array_filter([$this->roepnaam, $this->naam, $this->nummerplaat]));
+    }
 
     public function getId(): ?int { return $this->id; }
     public function getAfdeling(): ?Afdeling { return $this->afdeling; }

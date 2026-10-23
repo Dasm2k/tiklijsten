@@ -1,0 +1,9 @@
+when@dev:
+  web_profiler:
+    toolbar:
+      enabled: true
+    intercept_redirects: false
+
+  framework:
+    profiler:
+      only_exceptions: false

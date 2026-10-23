@@ -13,6 +13,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_fout_status', columns: ['afdeling_id', 'status'])]
 class Foutmelding
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 

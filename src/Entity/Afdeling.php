@@ -15,6 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[UniqueEntity('slug')]
 class Afdeling
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 
@@ -56,6 +57,12 @@ class Afdeling
 
     #[ORM\Column]
     private int $volgorde = 0;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $chauffeursActief = true;
+
+    public function isChauffeursActief(): bool { return $this->chauffeursActief; }
+    public function setChauffeursActief(bool $actief): static { $this->chauffeursActief = $actief; return $this; }
 
     public function getId(): ?int { return $this->id; }
     public function getSlug(): string { return $this->slug; }

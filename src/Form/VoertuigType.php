@@ -16,6 +16,13 @@ final class VoertuigType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('post', \Symfony\Bridge\Doctrine\Form\Type\EntityType::class, [
+                'class' => \App\Entity\Post::class, 'choice_label' => 'naam',
+                'placeholder' => 'Kies een post', 'required' => false,
+                'help' => 'Zonder post is het voertuig niet beschikbaar voor chauffeursregistratie.',
+                'query_builder' => fn ($r) => $r->createQueryBuilder('p')->orderBy('p.naam'),
+            ])
+            ->add('actief', CheckboxType::class, ['required' => false, 'label' => 'Actief (beschikbaar voor chauffeursregistratie)'])
             ->add('naam', TextType::class, ['help' => 'Merk en/of type'])
             ->add('roepnaam', TextType::class, ['required' => false])
             ->add('nummerplaat', TextType::class, ['required' => false])

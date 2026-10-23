@@ -22,6 +22,10 @@ final class AfdelingType extends AbstractType
             ->add('aantalPelotons', IntegerType::class, ['label' => 'Aantal pelotons'])
             ->add('foutmeldingenActief', CheckboxType::class, ['label' => 'Module foutmeldingen', 'required' => false])
             ->add('voertuigenActief', CheckboxType::class, ['label' => 'Module voertuigen & materiaal', 'required' => false])
+            ->add('chauffeursActief', CheckboxType::class, [
+                'label' => 'Chauffeursregistratie actief', 'required' => false,
+                'help' => 'Aan: een chauffeur is verplicht vóór afsluiten. Uit: geen chauffeurkeuze of verplichting. Dit is de standaard voor alle posten van deze afdeling; hieronder kun je per post afwijken.',
+            ])
             ->add('kadaverOntvangers', TextType::class, [
                 'label' => 'Ontvangers meldingen kadaver',
                 'required' => false,

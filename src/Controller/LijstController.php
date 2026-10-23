@@ -8,6 +8,7 @@ use App\Form\LijstType;
 use App\Repository\AanwezigheidslijstRepository;
 use App\Repository\HerinneringRepository;
 use App\Repository\PersoonRepository;
+use App\Security\LijstAfdrukVoter;
 use App\Service\LijstService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +26,8 @@ final class LijstController extends BaseController
     public function index(Request $request, AanwezigheidslijstRepository $lijsten): Response
     {
         $archief = $request->query->getBoolean('archief') && $this->isGranted('ROLE_ARCHIEF');
-        $zoek = trim($request->query->getString('zoek')) ?: null;
+        $zoek = trim($request->query->getString('zoek'));
+        $zoek = '' === $zoek ? null : $zoek;
         $pagina = $this->pagina($request);
         $resultaat = $lijsten->pagina($this->afdeling(), $archief, $pagina, self::PER_PAGINA, $zoek);
 
@@ -76,6 +78,7 @@ final class LijstController extends BaseController
         if (!$this->csrfOk($request, 'tikking'.$id)) {
             throw $this->createAccessDeniedException();
         }
+        if ($lijst->isSpeciaal()) { $this->addFlash('warning', 'Gebruik de begin- en eindregistratie op de speciale lijst.'); return $this->redirectToRoute('app_lijst_bewerken', ['id'=>$id]); }
         $persoon = $personen->find($request->request->getInt('persoon'));
         $einde = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', (string) $request->request->get('einde')) ?: null;
         $start = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', (string) $request->request->get('start')) ?: null;
@@ -86,7 +89,8 @@ final class LijstController extends BaseController
         } elseif ($lijst->heeftGetikt($persoon)) {
             $this->addFlash('danger', $persoon->getVolledigeNaam().' staat al op deze lijst.');
         } else {
-            $tikking = (new Tikking())->setPersoon($persoon)->setEinde($einde)->setStart($start);
+            $nummer = 1 + (int) $em->getConnection()->fetchOne('SELECT MAX(volgnummer) FROM tikking WHERE lijst_id = ? AND persoon_id = ?', [$id, $persoon->getId()]);
+            $tikking = (new Tikking())->setVolgnummer($nummer)->setPersoon($persoon)->setEinde($einde)->setStart($start);
             $lijst->addTikking($tikking);
             $em->persist($tikking);
             $em->flush();
@@ -104,7 +108,8 @@ final class LijstController extends BaseController
         if (!$tikking || $tikking->getLijst()->getId() !== $lijst->getId() || !$this->csrfOk($request, 'weg'.$tikking->getId())) {
             throw $this->createNotFoundException();
         }
-        $lijst->removeTikking($tikking);
+        if ($lijst->isSpeciaal() && $lijst->isAfgesloten()) { throw $this->createAccessDeniedException('Heropen de speciale lijst voordat je registraties wijzigt.'); }
+        $tikking->markeerVerwijderd($this->persoon()->getId());
         $em->flush();
         $this->addFlash('success', 'Tikking verwijderd.');
         return $this->redirectToRoute('app_lijst_bewerken', ['id' => $id]);
@@ -112,12 +117,20 @@ final class LijstController extends BaseController
 
     #[Route('/{id}/open-sluiten', name: 'app_lijst_open_sluiten', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('ROLE_ARCHIEF')]
-    public function openSluiten(int $id, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em): Response
+    public function openSluiten(int $id, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em, LijstService $service): Response
     {
         $lijst = $this->lijst($lijsten, $id);
         if ($this->csrfOk($request, 'status'.$id) && !$lijst->isGearchiveerd()) {
-            $lijst->setAfgesloten(!$lijst->isAfgesloten());
-            $em->flush();
+            try {
+                $em->wrapInTransaction(function () use ($lijst, $em, $service): void {
+                    $em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+                    if (!$lijst->isAfgesloten()) { $service->controleerAfsluiten($lijst, $this->persoon()); $service->vereisChauffeur($lijst); }
+                    $lijst->setAfgesloten(!$lijst->isAfgesloten());
+                });
+            } catch (\App\Service\TikFout $e) {
+                $this->addFlash('warning', $e->getMessage());
+                return $this->redirectToRoute('app_lijst_toon', ['id' => $id]);
+            }
             $this->addFlash('success', sprintf('Lijst %s is %s.', $lijst->getLabel(), $lijst->isAfgesloten() ? 'gesloten' : 'opnieuw geopend'));
         }
         return $this->redirect($request->headers->get('referer') ?: $this->generateUrl('app_lijst_index'));
@@ -125,12 +138,20 @@ final class LijstController extends BaseController
 
     #[Route('/{id}/archiveren', name: 'app_lijst_archiveren', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('ROLE_ARCHIEF')]
-    public function archiveren(int $id, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em): Response
+    public function archiveren(int $id, Request $request, AanwezigheidslijstRepository $lijsten, EntityManagerInterface $em, LijstService $service): Response
     {
         $lijst = $this->lijst($lijsten, $id);
         if ($this->csrfOk($request, 'archief'.$id)) {
-            $lijst->setAfgesloten(true)->setGearchiveerd(true);
-            $em->flush();
+            try {
+                $em->wrapInTransaction(function () use ($lijst, $em, $service): void {
+                    $em->refresh($lijst, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+                    if (!$lijst->isAfgesloten()) { $service->controleerAfsluiten($lijst, $this->persoon()); $service->vereisChauffeur($lijst); }
+                    $lijst->setAfgesloten(true)->setGearchiveerd(true);
+                });
+            } catch (\App\Service\TikFout $e) {
+                $this->addFlash('warning', $e->getMessage());
+                return $this->redirectToRoute('app_lijst_toon', ['id' => $id]);
+            }
             $this->addFlash('success', 'Lijst '.$lijst->getLabel().' is gearchiveerd.');
         }
         return $this->redirect($request->headers->get('referer') ?: $this->generateUrl('app_lijst_index'));
@@ -140,10 +161,10 @@ final class LijstController extends BaseController
     #[Route('/{id}/afdrukken', name: 'app_lijst_afdrukken', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function afdrukken(int $id, Request $request, AanwezigheidslijstRepository $lijsten, HerinneringRepository $herinneringen): Response
     {
-        if (!$this->isGranted('ROLE_POST') && !$this->isGranted('ROLE_PERSONEEL')) {
-            throw $this->createAccessDeniedException();
-        }
         $lijst = $this->lijst($lijsten, $id);
+        $this->denyAccessUnlessGranted(LijstAfdrukVoter::AFDRUKKEN, $lijst, $lijst->isAfgesloten()
+            ? 'Je mag deze lijst niet afdrukken.'
+            : 'Sluit de lijst eerst af voordat je ze afdrukt.');
         $terug = 'tik' === $request->query->get('terug') && $this->isGranted('ROLE_POST')
             ? $this->generateUrl('app_tik_index')
             : ($request->headers->get('referer') ?: $this->generateUrl('app_dashboard'));

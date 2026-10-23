@@ -24,6 +24,7 @@ final class SysteemaccountType extends AbstractType
         /** @var Afdeling $afdeling */
         $afdeling = $options['afdeling'];
         $builder
+            ->add('actief', \Symfony\Component\Form\Extension\Core\Type\CheckboxType::class, ['label' => 'Account actief', 'required' => false])
             ->add('naam', TextType::class, ['label' => 'Naam (bv. "Boom")'])
             ->add('voornaam', TextType::class, ['label' => 'Omschrijving (bv. "Tik-pc")'])
             ->add('tiknummer', IntegerType::class, ['label' => 'Aanmeldnummer'])

@@ -20,6 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[UniqueEntity(fields: ['afdeling', 'tiknummer'], message: 'Dit tiknummer is al in gebruik.')]
 class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    use \App\Entity\Traits\SoftDeleteTrait;
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
     private ?int $id = null;
 
@@ -87,6 +88,18 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
     /** Technisch account (administrator, tik-pc): niet in personeelslijsten, kan niet intikken. */
     #[ORM\Column]
     private bool $systeemaccount = false;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $totpSecret = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $totpLastStep = null;
+
+    public function isSuperadmin(): bool { return $this->rol === Rol::SUPERADMIN; }
+    public function getTotpSecret(): ?string { return $this->totpSecret; }
+    public function setTotpSecret(?string $secret): static { $this->totpSecret = $secret; $this->totpLastStep = null; return $this; }
+    public function getTotpLastStep(): ?int { return $this->totpLastStep; }
+    public function setTotpLastStep(int $step): static { $this->totpLastStep = $step; return $this; }
 
     public function getId(): ?int { return $this->id; }
     public function getAfdeling(): ?Afdeling { return $this->afdeling; }
