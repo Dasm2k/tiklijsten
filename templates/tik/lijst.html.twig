@@ -49,7 +49,7 @@
                 <div class="card shadow-sm border-primary mb-4">
                     <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-person-check"></i> Intikken</div>
                     <div class="card-body">
-                        <form method="post" action="{{ path('app_tik_in', {id: lijst.id}) }}" autocomplete="off">
+                        <form method="post" action="{{ path('app_tik_in', {id: lijst.id}) }}" autocomplete="off" data-intikken>
                             {% if lijst.speciaal %}
                                 <p class="small text-body-secondary">Intikken registreert je start. Vul je einduur later in via Aanwezigen.</p>
                                 <label class="form-label" for="moment">Startdatum en -tijd</label>
@@ -64,11 +64,11 @@
                             {% endif %}
                             <div class="mb-3">
                                 <label class="form-label" for="tiknummer">Tiknummer</label>
-                                <input class="form-control form-control-lg tik-invoer" id="tiknummer" name="tiknummer" inputmode="numeric" pattern="[0-9]*" required value="{{ laatste_tiknummer }}" {{ laatste_tiknummer ? '' : 'autofocus' }}>
+                                <input class="form-control form-control-lg tik-invoer" id="tiknummer" name="tiknummer" inputmode="numeric" pattern="[0-9]*" required value="" autocomplete="off" {{ verwijder ? '' : 'autofocus' }}>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="code">Code</label>
-                                <input class="form-control form-control-lg tik-invoer" id="code" name="code" type="password" inputmode="numeric" required autocomplete="off" {{ laatste_tiknummer ? 'autofocus' }}>
+                                <input class="form-control form-control-lg tik-invoer" id="code" name="code" type="password" inputmode="numeric" required value="" autocomplete="new-password">
                             </div>
                             <input type="hidden" name="_token" value="{{ csrf_token('tik' ~ lijst.id) }}">
                             <button class="btn btn-primary btn-lg w-100" type="submit">Registreren</button>
@@ -87,7 +87,7 @@
                         </div>
                     {% endif %}
                     {% if lijst.speciaal and lijst.openRegistraties %}<div class="alert alert-warning">Nog {{ lijst.openRegistraties }} open beginregistratie(s). Vul eerst de einduren in.</div>{% endif %}
-                    <button class="btn btn-lg btn-danger w-100" {{ (chauffeur_verplicht and not lijst.heeftChauffeur) or (lijst.speciaal and lijst.openRegistraties) ? 'disabled' }}><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
+                    <button class="btn btn-danger btn-lg w-100" {{ (chauffeur_verplicht and not lijst.heeftChauffeur) or (lijst.speciaal and lijst.openRegistraties) ? 'disabled' }}><i class="bi bi-lock"></i> Lijst afsluiten &amp; afdrukken</button>
                 </form>
             {% elseif is_granted('LIJST_AFDRUKKEN', lijst) %}
                 <a class="btn btn-outline-secondary w-100" href="{{ path('app_lijst_afdrukken', {id: lijst.id}) }}"><i class="bi bi-printer"></i> Afdrukken</a>

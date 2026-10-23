@@ -1,4 +1,4 @@
-> Actuele installatie-instructies voor deze pakketversie: `INSTALLATIE-tikscherm-zonder-pelotonleden.md`. Deze weergaveaanpassing vereist geen nieuwe migratie.
+> Actuele installatie-instructies voor deze pakketversie: `INSTALLATIE-intikken-leeg-focus.md`. Deze update vereist geen nieuwe migratie.
 
 # Update Tikkingen – chauffeurs en superadmin (23 oktober 2026)
 

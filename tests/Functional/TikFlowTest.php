@@ -13,6 +13,7 @@ use App\Entity\Rang;
 use App\Enum\Rol;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -143,6 +144,63 @@ final class TikFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         $this->client->request('GET', '/prestaties');
         self::assertResponseIsSuccessful();
+    }
+
+    public static function lijstSoorten(): iterable
+    {
+        yield 'gewone lijst' => [false];
+        yield 'speciale lijst' => [true];
+    }
+
+    #[DataProvider('lijstSoorten')]
+    public function testIntikFormulierIsLeegNaElkeTikpoging(bool $speciaal): void
+    {
+        $afdeling = $this->em->getRepository(Afdeling::class)->findOneBy(['slug' => 'boom-rumst']);
+        $persoon = $this->em->getRepository(Persoon::class)->findOneBy(['afdeling' => $afdeling, 'tiknummer' => 101]);
+        $lijst = (new Aanwezigheidslijst())->setAfdeling($afdeling)->setPost($persoon->getPost())
+            ->setNummer(1)->setPeloton(1)->setSpeciaal($speciaal)->setStart(new \DateTimeImmutable('-2 hours'));
+        $this->em->persist($lijst);
+        $this->em->flush();
+        $url = '/tikken/lijst/'.$lijst->getId();
+        $this->login('boom-rumst', '2850', '1111');
+        $crawler = $this->client->request('GET', $url);
+        $this->controleerLeegIntikFormulier();
+
+        // Ook na een foute code mag het vorige tiknummer niet worden hergebruikt.
+        $waarden = ['tiknummer' => '101', 'code' => '0000'];
+        if ($speciaal) { $waarden['moment'] = (new \DateTimeImmutable('-1 hour'))->format('Y-m-d\TH:i'); }
+        $this->client->submit($crawler->selectButton('Registreren')->form($waarden));
+        self::assertResponseRedirects($url);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'Code niet juist.');
+        $this->controleerLeegIntikFormulier();
+
+        $waarden['code'] = '4321';
+        $this->client->submit($crawler->selectButton('Registreren')->form($waarden));
+        self::assertResponseRedirects($url);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-success', 'Peeters Jan is ingetikt.');
+        $this->controleerLeegIntikFormulier();
+
+        // Een dubbele poging en een verlopen formulier laten dezelfde lege beginstaat zien.
+        $this->client->submit($crawler->selectButton('Registreren')->form($waarden));
+        $this->client->followRedirect();
+        self::assertSelectorExists('.alert-danger');
+        $this->controleerLeegIntikFormulier();
+        $this->client->request('POST', $url.'/in', $waarden + ['_token' => 'verlopen']);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'Het formulier is verlopen');
+        $this->controleerLeegIntikFormulier();
+        $this->client->request('GET', $url);
+        $this->controleerLeegIntikFormulier();
+    }
+
+    private function controleerLeegIntikFormulier(): void
+    {
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[data-intikken] #tiknummer[value=""][autofocus]');
+        self::assertSelectorExists('form[data-intikken] #code[value=""]');
+        self::assertSelectorNotExists('form[data-intikken] #code[autofocus]');
     }
 
     public function testAfdelingenZijnGescheiden(): void

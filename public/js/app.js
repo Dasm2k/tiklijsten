@@ -1,5 +1,20 @@
 // Kleine verbeteringen zonder build-stap.
 document.addEventListener('DOMContentLoaded', () => {
+  // De gedeelde tik-pc staat na iedere paginaweergave klaar voor de volgende persoon.
+  const intikken = document.querySelector('form[data-intikken]');
+  if (intikken) {
+    const nummer = intikken.querySelector('[name="tiknummer"]');
+    const code = intikken.querySelector('[name="code"]');
+    const klaarVoorIntikken = () => {
+      nummer.value = '';
+      code.value = '';
+      // Een geopende verwijderbevestiging houdt de focus op haar eigen codeveld.
+      if (nummer.hasAttribute('autofocus')) nummer.focus({ preventScroll: true });
+    };
+    klaarVoorIntikken();
+    window.addEventListener('pageshow', klaarVoorIntikken);
+  }
+
   // De verplichting volgt het gekozen interventietype; de server controleert dit ook.
   document.querySelectorAll('select[data-interventietype]').forEach((type) => {
     const nummer = type.form?.querySelector('[data-interventienummer]');

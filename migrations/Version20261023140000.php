@@ -9,6 +9,12 @@ use Doctrine\Migrations\AbstractMigration;
 
 final class Version20261023140000 extends AbstractMigration
 {
+    public function isTransactional(): bool
+    {
+        // MySQL en MariaDB voeren bij schemawijzigingen een impliciete COMMIT uit.
+        return false;
+    }
+
     public function getDescription(): string
     {
         return 'Afzonderlijke momentopname van de voertuignaam voor de korte chauffeurvermelding.';

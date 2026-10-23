@@ -8,6 +8,12 @@ use Doctrine\Migrations\AbstractMigration;
 
 final class Version20261023120000 extends AbstractMigration
 {
+    public function isTransactional(): bool
+    {
+        // MySQL en MariaDB voeren bij schemawijzigingen een impliciete COMMIT uit.
+        return false;
+    }
+
     public function getDescription(): string { return 'Speciale lijsten met meerdere begin/eindperiodes, soft delete en handelingenlog.'; }
     public function up(Schema $schema): void
     {

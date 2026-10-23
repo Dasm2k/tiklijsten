@@ -58,7 +58,6 @@ final class TikController extends BaseController
             'lijst' => $lijst,
             'andere_open' => $lijsten->open($this->afdeling(), $this->isGranted('ROLE_ADMIN') ? null : $this->persoon()->getPost()),
             'verwijder' => $request->query->getInt('verwijder') ?: null,
-            'laatste_tiknummer' => $request->getSession()->getFlashBag()->get('tiknummer')[0] ?? '',
         ]);
     }
 
@@ -115,9 +114,6 @@ final class TikController extends BaseController
             $this->addFlash('success', $tikking->getPersoon()->getVolledigeNaam().' is ingetikt.');
         } catch (TikFout $e) {
             $this->addFlash('danger', $e->getMessage());
-            if ('Code niet juist.' === $e->getMessage()) {
-                $this->addFlash('tiknummer', (string) $request->request->get('tiknummer'));
-            }
         }
         return $this->redirectToRoute('app_tik_lijst', ['id' => $id]);
     }

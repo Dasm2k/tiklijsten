@@ -8,6 +8,12 @@ use Doctrine\Migrations\AbstractMigration;
 
 final class Version20261023090000 extends AbstractMigration
 {
+    public function isTransactional(): bool
+    {
+        // MySQL en MariaDB voeren bij schemawijzigingen een impliciete COMMIT uit.
+        return false;
+    }
+
     public function getDescription(): string { return 'Chauffeurs met historiek, voertuigpost en actiefstatus, superadmin TOTP.'; }
     public function up(Schema $schema): void
     {

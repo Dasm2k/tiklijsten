@@ -12,6 +12,12 @@ use Doctrine\Migrations\AbstractMigration;
  */
 final class Version20261021000000 extends AbstractMigration
 {
+    public function isTransactional(): bool
+    {
+        // MySQL en MariaDB voeren bij schemawijzigingen een impliciete COMMIT uit.
+        return false;
+    }
+
     public function getDescription(): string
     {
         return 'Nieuw schema BrandweerOnline (vervangt bw_* tabellen) + posten van de zone';
