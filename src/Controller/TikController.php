@@ -6,7 +6,6 @@ use App\Entity\Aanwezigheidslijst;
 use App\Entity\Tikking;
 use App\Form\LijstType;
 use App\Repository\AanwezigheidslijstRepository;
-use App\Repository\PersoonRepository;
 use App\Service\LijstService;
 use App\Service\TikFout;
 use App\Service\TikService;
@@ -48,7 +47,7 @@ final class TikController extends BaseController
     }
 
     #[Route('/lijst/{id}', name: 'app_tik_lijst', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function lijst(int $id, AanwezigheidslijstRepository $lijsten, PersoonRepository $personen, Request $request, \App\Repository\VoertuigRepository $voertuigen, \App\Service\ChauffeurConfiguratie $chauffeurConfiguratie, \App\Service\SpecialeLijstRechten $rechten): Response
+    public function lijst(int $id, AanwezigheidslijstRepository $lijsten, Request $request, \App\Repository\VoertuigRepository $voertuigen, \App\Service\ChauffeurConfiguratie $chauffeurConfiguratie, \App\Service\SpecialeLijstRechten $rechten): Response
     {
         $lijst = $this->lijstOf404($lijsten, $id);
         return $this->render('tik/lijst.html.twig', [
@@ -58,7 +57,6 @@ final class TikController extends BaseController
             'chauffeur_voertuigen' => $voertuigen->findBy(['afdeling' => $this->afdeling(), 'actief' => true], ['roepnaam' => 'ASC', 'naam' => 'ASC']),
             'lijst' => $lijst,
             'andere_open' => $lijsten->open($this->afdeling(), $this->isGranted('ROLE_ADMIN') ? null : $this->persoon()->getPost()),
-            'peloton' => $lijst->getPeloton() ? $personen->vanPeloton($this->afdeling(), $lijst->getPeloton()) : [],
             'verwijder' => $request->query->getInt('verwijder') ?: null,
             'laatste_tiknummer' => $request->getSession()->getFlashBag()->get('tiknummer')[0] ?? '',
         ]);

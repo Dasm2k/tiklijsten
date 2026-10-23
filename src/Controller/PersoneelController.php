@@ -22,14 +22,17 @@ final class PersoneelController extends BaseController
     public function index(Request $request, PersoonRepository $personen): Response
     {
         $sort = $request->query->getString('sort', 'naam');
-        $richting = $request->query->getString('richting', 'ASC');
+        $sort = isset(PersoonRepository::SORTEERVELDEN[$sort]) ? $sort : 'naam';
+        $richting = 'DESC' === strtoupper($request->query->getString('richting', 'ASC')) ? 'DESC' : 'ASC';
         $inactief = $request->query->getBoolean('inactief');
+        $zoek = trim(mb_substr($request->query->getString('zoek'), 0, 200));
 
         return $this->render('personeel/index.html.twig', [
-            'personen' => $personen->personeel($this->afdeling(), !$inactief, $sort, $richting),
+            'personen' => $personen->personeel($this->afdeling(), !$inactief, $sort, $richting, $zoek),
             'sort' => $sort,
             'richting' => $richting,
             'inactief' => $inactief,
+            'zoek' => $zoek,
         ]);
     }
 

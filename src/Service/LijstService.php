@@ -75,7 +75,7 @@ final class LijstService
             throw new TikFout('Vul eerst het verplichte interventienummer in via Lijst bewerken.');
         }
         if (!$lijst->isSpeciaal()) { return; }
-        if (!$this->rechten->magAfsluiten($lijst, $door ?? $this->audit->actor())) { throw new TikFout('Een speciale lijst kan alleen afgesloten worden door een beheerder, sergeant of adjudant.'); }
+        if (!$this->rechten->magAfsluiten($lijst, $door ?? $this->audit->actor())) { throw new TikFout('Een speciale lijst kan alleen afgesloten worden door een beheerder, sergeant, adjudant, luitenant, kapitein of majoor.'); }
         $open = (int) $this->em->createQuery('SELECT COUNT(t.id) FROM App\\Entity\\Tikking t WHERE t.lijst = :lijst AND t.einde IS NULL')->setParameter('lijst',$lijst)->getSingleScalarResult();
         if ($open) { throw new TikFout('Er zijn nog '.$open.' open beginregistraties. Registreer eerst alle einduren.'); }
     }

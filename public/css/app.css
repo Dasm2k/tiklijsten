@@ -71,6 +71,26 @@ main { flex: 1; }
 .peloton-lid { display: flex; justify-content: space-between; align-items: center; padding: .25rem .5rem; border-radius: .375rem; }
 .peloton-lid.aanwezig { background: rgba(25, 135, 84, .15); }
 .status-stip { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; }
+.aanwezigheden-lijst > .aanwezigheid { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: .5rem .625rem; background: var(--bs-tertiary-bg); }
+.aanwezigheden-lijst > .aanwezigheid-open { border-inline-start: 3px solid var(--bs-success); }
+.aanwezigheid-inhoud { flex: 1; min-width: 0; }
+.aanwezigheid-kop { display: flex; align-items: center; gap: .4rem; min-width: 0; line-height: 1.4; white-space: nowrap; }
+.aanwezigheid-periode { flex: 0 0 auto; font-size: .65rem; font-weight: 500; }
+.aanwezigheid-naam { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aanwezigheid-naam .btn { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: inherit; line-height: 1.4; }
+.aanwezigheid-chauffeur { flex: 0 1 auto; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aanwezigheid-tijden { display: flex; align-items: center; gap: .35rem; margin-top: .125rem; font-size: .8125rem; line-height: 1.4; white-space: nowrap; }
+.aanwezigheid-acties { flex: 0 0 auto; }
+.aanwezigheid-acties .btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; min-height: 1.75rem; padding: .25rem; }
+@media (max-width: 420px) {
+  .aanwezigheid-tijden { font-size: .75rem; gap: .25rem; }
+  .aanwezigheid-kop { gap: .25rem; font-size: .875rem; }
+  .aanwezigheid-periode { font-size: .6rem; }
+  .aanwezigheid-periode-label { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap; }
+}
+@media (max-width: 360px) {
+  .aanwezigheid-tijden { font-size: .6875rem; gap: .2rem; }
+}
 tr.beroeps td { font-weight: 600; font-style: italic; }
 
 /* Personen kiezen in mailinglijsten */

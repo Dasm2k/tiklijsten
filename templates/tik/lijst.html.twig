@@ -81,7 +81,7 @@
                     <input type="hidden" name="_token" value="{{ csrf_token('afsluiten' ~ lijst.id) }}">
                     {% if lijst.speciaal and not mag_speciaal_afsluiten %}
                         <div class="card card-body mb-2">
-                            <p class="small">Afsluiten door een beheerder, sergeant of adjudant. Vul je persoonlijke tiknummer en code in.</p>
+                            <p class="small">Afsluiten door een beheerder, sergeant, adjudant, luitenant, kapitein of majoor. Vul je persoonlijke tiknummer en code in.</p>
                             <label for="afsluit-tiknummer" class="form-label">Tiknummer bevoegde afsluiter</label><input class="form-control mb-2" id="afsluit-tiknummer" name="afsluit_tiknummer" inputmode="numeric" required>
                             <label for="afsluit-code" class="form-label">Persoonlijke code</label><input class="form-control" id="afsluit-code" name="afsluit_code" type="password" autocomplete="off" required>
                         </div>
@@ -95,31 +95,23 @@
         </div>
 
         {# Kolom 2: aanwezigen #}
-        <div class="col-lg-5">
+        <div class="col-lg-8">
             <div class="card shadow-sm h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span class="fw-semibold">Aanwezigen</span>
                     <span class="tik-teller">{{ lijst.aantalAanwezigen }}</span>
                 </div>
-                <ul class="list-group list-group-flush">
+                <ul class="list-group gap-2 p-2 mb-0 aanwezigheden-lijst">
                     {% for t in lijst.tikkingen %}
-                        <li class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">
-                                        {% if chauffeurs_actief and not lijst.afgesloten %}
-                                            <button type="button" class="btn btn-link p-0 text-start fw-semibold" data-bs-toggle="modal" data-bs-target="#chauffeur{{ t.id }}">{{ t.persoon.naam }} {{ t.persoon.voornaam }}</button>
-                                        {% else %}{{ t.persoon.naam }} {{ t.persoon.voornaam }}{% endif %}
-
-                                    </div>
-                                    {% include 'lijst/_registratie_info.html.twig' %}
-                                    {% include 'lijst/_registratie_tijden.html.twig' %}
-                                    {% if t.einde %}<div class="small text-body-secondary tabular mt-1">Prestatie: {{ t.prestatie|duur }}</div>{% endif %}
-                                    {% if lijst.speciaal and not lijst.afgesloten %}<button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-bs-toggle="modal" data-bs-target="#tijden{{ t.id }}">Tijden aanpassen</button>{% endif %}
+                        <li class="list-group-item aanwezigheid {{ t.einde is null ? 'aanwezigheid-open' }}" data-registratie="{{ t.id }}">
+                            <div class="d-flex gap-2 align-items-center">
+                                {% include 'lijst/_aanwezigheid_compact.html.twig' %}
+                                <div class="aanwezigheid-acties d-flex align-items-center">
+                                    {% if lijst.speciaal and not lijst.afgesloten %}<button type="button" class="btn btn-sm btn-link text-secondary" data-bs-toggle="modal" data-bs-target="#tijden{{ t.id }}" title="Tijden aanpassen" aria-label="Tijden aanpassen voor {{ t.persoon.volledigeNaam }}"><i class="bi bi-clock-history" aria-hidden="true"></i></button>{% endif %}
+                                    {% if not lijst.afgesloten and verwijder != t.id %}
+                                        <a class="btn btn-sm btn-link text-danger" href="{{ path('app_tik_lijst', {id: lijst.id, verwijder: t.id}) }}" title="Tikking verwijderen" aria-label="Tikking verwijderen voor {{ t.persoon.volledigeNaam }}"><i class="bi bi-x-circle" aria-hidden="true"></i></a>
+                                    {% endif %}
                                 </div>
-                                {% if not lijst.afgesloten and verwijder != t.id %}
-                                    <a class="btn btn-sm btn-link text-danger" href="{{ path('app_tik_lijst', {id: lijst.id, verwijder: t.id}) }}" title="Tikking verwijderen"><i class="bi bi-x-circle"></i></a>
-                                {% endif %}
                             </div>
                             {% if verwijder == t.id and not lijst.afgesloten %}
                                 <form method="post" action="{{ path('app_tik_verwijder', {id: lijst.id, tikking: t.id}) }}" class="d-flex gap-2 mt-2">
@@ -137,23 +129,6 @@
             </div>
         </div>
 
-        {# Kolom 3: peloton van wacht #}
-        <div class="col-lg-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-header fw-semibold">{{ lijst.peloton|peloton|capitalize }}</div>
-                <div class="card-body p-2 small">
-                    {% for lid in peloton %}
-                        {% set aanwezig = lijst.heeftGetikt(lid) %}
-                        <div class="peloton-lid {{ aanwezig ? 'aanwezig' }}">
-                            <span>{{ lid.rang ? lid.rang.kort }} {{ lid.naam }} {{ lid.voornaam }}</span>
-                            <span class="status-stip {{ aanwezig ? 'bg-success' : 'bg-secondary-subtle border' }}"></span>
-                        </div>
-                    {% else %}
-                        <div class="text-body-secondary p-2">Geen leden in dit peloton.</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
     </div>
     {% if chauffeurs_actief and not lijst.afgesloten %}
         {% for t in lijst.tikkingen %}

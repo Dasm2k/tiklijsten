@@ -1,0 +1,17 @@
+<div class="aanwezigheid-inhoud">
+    <div class="aanwezigheid-kop registratie-info">
+        {% if lijst.speciaal %}<span class="badge text-bg-secondary aanwezigheid-periode" title="Periode {{ t.volgnummer }}"><span class="aanwezigheid-periode-label">Periode </span>{{ t.volgnummer }}</span>{% endif %}
+        <div class="aanwezigheid-naam fw-semibold" title="{{ t.persoon.volledigeNaam }}">
+            {% if chauffeurs_actief and not lijst.afgesloten %}
+                <button type="button" class="btn btn-link p-0 text-start fw-semibold" data-bs-toggle="modal" data-bs-target="#chauffeur{{ t.id }}">{{ t.persoon.volledigeNaam }}</button>
+            {% else %}{{ t.persoon.volledigeNaam }}{% endif %}
+        </div>
+        {% if t.chauffeurVoertuigNaam %}<span class="aanwezigheid-chauffeur small text-body-secondary" title="Chf: {{ t.chauffeurVoertuigNaam }}">Chf: {{ t.chauffeurVoertuigNaam }}</span>{% endif %}
+    </div>
+    <div class="aanwezigheid-tijden registratie-tijden tabular">
+        <span><span class="visually-hidden">Begin </span><time datetime="{{ t.start|date('c') }}" title="Begin {{ t.start|date('d/m/Y H:i') }}">{{ t.start|date('d/m H:i') }}</time></span>
+        <span aria-hidden="true">→</span>
+        <span><span class="visually-hidden">Einde </span>{% if t.einde %}<time datetime="{{ t.einde|date('c') }}" title="Einde {{ t.einde|date('d/m/Y H:i') }}">{{ t.einde|date('Y-m-d') == t.start|date('Y-m-d') ? t.einde|date('H:i') : t.einde|date('d/m H:i') }}</time>{% else %}<span class="text-success">Nog aanwezig</span>{% endif %}</span>
+        {% if t.einde %}<span class="text-body-secondary aanwezigheid-duur" title="Prestatie: {{ t.prestatie|duur }}"><span aria-hidden="true">· </span><span class="visually-hidden">Prestatie: </span>{{ t.prestatie|duur }}</span>{% endif %}
+    </div>
+</div>

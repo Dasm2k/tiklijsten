@@ -122,7 +122,12 @@ final class LijstAfdrukTest extends WebTestCase
             self::assertSelectorTextContains('.registratie-info', 'Periode 1');
             self::assertSelectorTextContains('.registratie-info', 'Chf: Autopomp 1');
             self::assertSelectorTextNotContains('.registratie-info', 'AP1 Boom');
-            self::assertSelectorNotExists('.registratie-info .badge, .registratie-info .rounded-pill');
+            if (str_starts_with($url, '/tikken/')) {
+                self::assertSelectorCount(1, '.aanwezigheid-periode');
+                self::assertSelectorNotExists('.aanwezigheid-chauffeur .badge');
+            } else {
+                self::assertSelectorNotExists('.registratie-info .badge, .registratie-info .rounded-pill');
+            }
             self::assertSelectorTextNotContains('main', 'Begonnen');
             self::assertSelectorTextNotContains('main', 'Beëindigd');
         }

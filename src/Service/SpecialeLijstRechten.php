@@ -19,6 +19,6 @@ final class SpecialeLijstRechten
         if ($this->isBeheerder($persoon)) { return true; }
         if ($persoon->isSysteemaccount()) { return false; }
         $rang = mb_strtolower(($persoon->getRang()?->getNaam() ?? '').' '.($persoon->getRang()?->getKort() ?? ''));
-        return (bool) preg_match('/sergeant|adjudant|\bsgt\b|\bs\.gt\b|\badj\b/u', $rang);
+        return (bool) preg_match('/sergeant|adjudant|\b(?:luitenant|kapitein|majoor|sgt|s\.gt|adj|lt|kap|kapt|kpt|maj)\b/u', $rang);
     }
 }

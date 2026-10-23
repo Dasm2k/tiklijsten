@@ -6,6 +6,7 @@ use App\Enum\Rol;
 use App\Service\{LijstService,SpecialeTikService,TikFout};
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SpecialeLijstAuditTest extends WebTestCase
@@ -40,6 +41,18 @@ final class SpecialeLijstAuditTest extends WebTestCase
     {
         $c=$this->client->request('GET','/tikken/lijst/'.$this->ids['lijst']);self::assertResponseIsSuccessful();
         $this->client->submit($c->selectButton('Registreren')->form(['tiknummer'=>'101','code'=>'4321','moment'=>$this->moment($moment)]));self::assertResponseRedirects();
+    }
+    public static function officieren(): iterable
+    {
+        yield 'luitenant' => ['Luitenant', 'Lt.'];
+        yield 'kapitein' => ['Kapitein', 'Kap.'];
+        yield 'majoor' => ['Majoor', 'Maj.'];
+    }
+    public static function bevoegdeRangen(): iterable
+    {
+        yield 'sergeant' => ['Sergeant', 'Sgt.'];
+        yield 'adjudant' => ['Adjudant', 'Adj.'];
+        yield from self::officieren();
     }
     public function testSpecialeLijstZonderBevelvoerderKanAangemaakt(): void
     {
@@ -99,6 +112,8 @@ final class SpecialeLijstAuditTest extends WebTestCase
         $service->wijzig($eerste,$lid,new \DateTimeImmutable('-4 hours'),new \DateTimeImmutable('-150 minutes'));
         self::assertSame(5400,$eerste->getPrestatie());self::assertSame(0,$lijst->getOpenRegistraties());
         self::assertGreaterThan(0,$this->em()->getRepository(Handeling::class)->count(['objectType'=>Tikking::class,'objectId'=>$eerste->getId(),'actie'=>'wijzigen']));
+        $this->client->loginUser($this->person('pc'));$this->client->request('GET','/tikken/lijst/'.$this->ids['lijst']);
+        self::assertSelectorCount(2,'.aanwezigheid');self::assertSelectorCount(2,'.aanwezigheid-periode');
     }
     public function testDubbelBeginWordtGeweigerd(): void
     {
@@ -138,7 +153,7 @@ final class SpecialeLijstAuditTest extends WebTestCase
     }
     public function testGewoonLidKanSpecialeLijstNietSluiten(): void
     {
-        $this->expectException(TikFout::class);$this->expectExceptionMessage('beheerder, sergeant of adjudant');static::getContainer()->get(LijstService::class)->sluitAf($this->list(),$this->person('lid'));
+        $this->expectException(TikFout::class);$this->expectExceptionMessage('beheerder, sergeant, adjudant, luitenant, kapitein of majoor');static::getContainer()->get(LijstService::class)->sluitAf($this->list(),$this->person('lid'));
     }
     public function testSergeantEnBeheerderKunnenAfsluiten(): void
     {
@@ -146,17 +161,47 @@ final class SpecialeLijstAuditTest extends WebTestCase
         self::assertTrue($rechten->magAfsluiten($this->list(),$this->person('sgt')));self::assertTrue($rechten->magAfsluiten($this->list(),$this->person('beheer')));self::assertFalse($rechten->magAfsluiten($this->list(),$this->person('pc')));
         static::getContainer()->get(LijstService::class)->sluitAf($this->list(),$this->person('sgt'));self::assertTrue($this->list()->isAfgesloten());
     }
-    public function testPostFlowPersoonlijkeAfsluiterEnAuditActor(): void
+    #[DataProvider('bevoegdeRangen')]
+    public function testPostFlowPersoonlijkeAfsluiterEnAuditActor(string $naam, string $kort): void
     {
+        $this->person('sgt')->getRang()->setNaam($naam)->setKort($kort);$this->em()->flush();
+        self::assertSame(Rol::LID,$this->person('sgt')->getRol());
         $this->client->loginUser($this->person('pc'));$this->postTik('begin','-2 hours');$c=$this->client->followRedirect();
         self::assertSelectorTextContains('.registratie-tijden','Nog aanwezig');
         $form=$c->filter('form[action$="/tijden"]')->form(['einde'=>$this->moment('-1 hour'),'code'=>'4321']);
-        $this->client->submit($form);$c=$this->client->followRedirect();self::assertSelectorTextContains('.registratie-tijden',(new \DateTimeImmutable('-1 hour'))->format('d/m/Y H:i'));
+        $this->client->submit($form);$c=$this->client->followRedirect();self::assertSelectorExists('.registratie-tijden time[title="Einde '.(new \DateTimeImmutable('-1 hour'))->format('d/m/Y H:i').'"]');
         $form=$c->filter('form[action$="/afsluiten"]')->form(['afsluit_tiknummer'=>'102','afsluit_code'=>'4321']);$this->client->submit($form);self::assertResponseRedirects();
         $db=$this->em()->getConnection();$row=$db->fetchAssociative("SELECT * FROM handeling WHERE object_type = ? AND object_id = ? AND actie = 'afsluiten' ORDER BY id DESC",[Aanwezigheidslijst::class,$this->ids['lijst']]);
         self::assertSame($this->ids['sgt'],(int)$row['actor_id']);
         $tik=$db->fetchAssociative("SELECT * FROM handeling WHERE object_type = ? AND actie = 'aanmaken' ORDER BY id DESC",[Tikking::class]);self::assertSame($this->ids['lid'],(int)$tik['actor_id']);
         $all=implode('',$db->fetchFirstColumn('SELECT na FROM handeling'));self::assertStringNotContainsString('4321',$all);self::assertStringNotContainsString('$2y$',$all);
+    }
+    #[DataProvider('officieren')]
+    public function testOfficierMetGewoneLidrolKanPersoneelstijdenWijzigenSluitenAfdrukkenEnHeropenen(string $naam, string $kort): void
+    {
+        $this->person('sgt')->getRang()->setNaam($naam)->setKort($kort);$this->em()->flush();
+        self::assertSame(Rol::LID,$this->person('sgt')->getRol());
+        $tikking=$this->service()->registreer($this->list(),$this->person('lid'),'begin',new \DateTimeImmutable('-3 hours'));
+        $tikkingId=$tikking->getId();$url='/speciale-lijsten/'.$this->ids['lijst'];
+        $this->client->loginUser($this->person('sgt'));$c=$this->client->request('GET',$url);self::assertResponseIsSuccessful();
+        $form=$c->filter('form[action$="/tikking/'.$tikkingId.'"]')->form(['start'=>$this->moment('-2 hours'),'einde'=>$this->moment('-1 hour')]);
+        $this->client->submit($form);self::assertResponseRedirects($url);
+        $tikking=$this->em()->find(Tikking::class,$tikkingId);
+        self::assertSame($this->moment('-2 hours'),$tikking->getStart()->format('Y-m-d\TH:i'));
+        self::assertSame($this->moment('-1 hour'),$tikking->getEinde()->format('Y-m-d\TH:i'));
+        $log=$this->em()->getConnection()->fetchAssociative("SELECT actor_id FROM handeling WHERE object_type = ? AND object_id = ? AND actie = 'wijzigen' ORDER BY id DESC",[Tikking::class,$tikkingId]);
+        self::assertSame($this->ids['sgt'],(int)$log['actor_id']);
+        $c=$this->client->followRedirect();$this->client->submit($c->filter('form[action$="/afsluiten"]')->form());self::assertResponseRedirects($url);
+        self::assertTrue($this->list()->isAfgesloten());
+        $log=$this->em()->getConnection()->fetchAssociative("SELECT actor_id FROM handeling WHERE object_type = ? AND object_id = ? AND actie = 'afsluiten' ORDER BY id DESC",[Aanwezigheidslijst::class,$this->ids['lijst']]);
+        self::assertSame($this->ids['sgt'],(int)$log['actor_id']);
+        $this->client->request('GET','/lijsten/'.$this->ids['lijst'].'/afdrukken');self::assertResponseIsSuccessful();self::assertSelectorTextContains('tbody','Lid Jan');
+        $this->client->request('GET','/lijsten/'.$this->ids['gewoon']);self::assertResponseStatusCodeSame(403);
+        $c=$this->client->request('GET',$url);$this->client->submit($c->selectButton('Heropenen voor correcties')->form());self::assertResponseRedirects($url);
+        self::assertFalse($this->list()->isAfgesloten());
+        $log=$this->em()->getConnection()->fetchAssociative("SELECT actor_id FROM handeling WHERE object_type = ? AND object_id = ? AND actie = 'heropenen' ORDER BY id DESC",[Aanwezigheidslijst::class,$this->ids['lijst']]);
+        self::assertSame($this->ids['sgt'],(int)$log['actor_id']);
+        $this->client->request('GET','/lijsten/'.$this->ids['lijst'].'/afdrukken');self::assertResponseStatusCodeSame(403);
     }
     public function testPersoonlijkSchermEnAnderAfdelingWordtGeweigerd(): void
     {

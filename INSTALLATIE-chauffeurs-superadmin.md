@@ -1,4 +1,4 @@
-> Actuele installatie-instructies voor deze pakketversie: `INSTALLATIE-postcodes-niel-nijlen.md`. Voer ook correctiemigratie `Version20261023160000` uit.
+> Actuele installatie-instructies voor deze pakketversie: `INSTALLATIE-tikscherm-zonder-pelotonleden.md`. Deze weergaveaanpassing vereist geen nieuwe migratie.
 
 # Update Tikkingen – chauffeurs en superadmin (23 oktober 2026)
 

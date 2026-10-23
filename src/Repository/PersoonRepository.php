@@ -64,11 +64,19 @@ class PersoonRepository extends ServiceEntityRepository implements PasswordUpgra
     }
 
     /** @return Persoon[] */
-    public function personeel(Afdeling $afdeling, ?bool $actief = true, string $sort = 'naam', string $richting = 'ASC'): array
+    public function personeel(Afdeling $afdeling, ?bool $actief = true, string $sort = 'naam', string $richting = 'ASC', string $zoek = ''): array
     {
         $veld = self::SORTEERVELDEN[$sort] ?? 'p.naam';
         $richting = 'DESC' === strtoupper($richting) ? 'DESC' : 'ASC';
-        return $this->personeelQuery($afdeling, $actief)
+        $qb = $this->personeelQuery($afdeling, $actief);
+        // Elk zoekwoord moet in minstens één veld voorkomen; de volgorde van voor- en achternaam is vrij.
+        foreach (preg_split('/\s+/u', mb_strtolower(trim(mb_substr($zoek, 0, 200))), -1, PREG_SPLIT_NO_EMPTY) as $index => $woord) {
+            $parameter = 'zoek'.$index;
+            $velden = ['LOWER(p.naam)', 'LOWER(p.voornaam)', 'p.tiknummer', 'p.zonenummer', 'LOWER(p.email)', 'LOWER(po.naam)', 'LOWER(po.code)', 'LOWER(r.naam)', 'LOWER(r.kort)'];
+            $qb->andWhere($qb->expr()->orX(...array_map(static fn (string $veld): string => $veld.' LIKE :'.$parameter." ESCAPE '!'", $velden)))
+                ->setParameter($parameter, '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $woord).'%');
+        }
+        return $qb
             ->orderBy($veld, $richting)->addOrderBy('p.naam', 'ASC')->addOrderBy('p.voornaam', 'ASC')
             ->getQuery()->getResult();
     }
