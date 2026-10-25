@@ -87,19 +87,13 @@ final class LijstType extends AbstractType
                     'widget' => 'single_text',
                     'input' => 'datetime_immutable',
                     'required' => false,
-                ])
-                ->add('centralist', EntityType::class, [
-                    'class' => Persoon::class,
-                    'query_builder' => fn (PersoonRepository $r) => $r->keuzeQuery($afdeling),
-                    'choice_label' => fn (Persoon $p) => $p->getVolledigeNaam().' '.$p->getRang()?->getKort(),
-                    'placeholder' => 'n.v.t.',
-                    'required' => false,
                 ]);
         }
         $builder->add('info', TextType::class, [
             'label' => 'Extra info',
-            'required' => false,
-            'attr' => ['maxlength' => 100, 'placeholder' => 'Optioneel, max. 100 tekens'],
+            'required' => true,
+            'empty_data' => '',
+            'attr' => ['maxlength' => 100, 'placeholder' => 'Verplicht, max. 100 tekens'],
         ]);
         $bevelvoerder = static function (\Symfony\Component\Form\FormInterface $form, bool $speciaal) use ($afdeling, $options): void {
             $form->add('bevelvoerder', EntityType::class, [

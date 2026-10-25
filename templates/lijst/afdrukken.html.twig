@@ -3,16 +3,16 @@
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 {% block body %}
-    <div data-auto-print data-terug="{{ terug }}">
+    <div class="lijst-afdruk" data-bs-theme="light" data-auto-print data-terug="{{ terug }}">
         <div class="geen-print d-flex gap-2 mb-3">
             <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Afdrukken</button>
             <a class="btn btn-outline-secondary" href="{{ terug }}">Terug</a>
         </div>
-        <div class="card mb-3">
+        <div class="card mb-3 lijst-afdruk-kop">
             <div class="card-body d-flex gap-3 align-items-start">
-                <img src="{{ asset('img/logo.png') }}" alt="" width="80" height="80">
-                <div class="flex-grow-1">
-                    <h1 class="h4">{{ lijst.afdeling.titel }} - Aanwezigheidslijst {{ lijst.post ? 'post ' ~ lijst.post.naam }} {{ lijst.label }}</h1>
+                <img class="flex-shrink-0" src="{{ asset('img/logo.png') }}" alt="" width="80" height="80">
+                <div class="flex-grow-1 lijst-afdruk-inhoud">
+                    <h1 class="h4 lijst-afdruk-titel">{{ lijst.afdeling.titel }} - Aanwezigheidslijst {{ lijst.post ? 'post ' ~ lijst.post.naam }} {{ lijst.label }}</h1>
                     {% include 'lijst/_kop.html.twig' %}
                 </div>
             </div>

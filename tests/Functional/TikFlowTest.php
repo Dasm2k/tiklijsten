@@ -84,6 +84,7 @@ final class TikFlowTest extends WebTestCase
         $form['lijst[interventieType]']->select((string) $this->em->getRepository(InterventieType::class)->findOneBy([])->getId());
         $form['lijst[bevelvoerder]']->select((string) $this->em->getRepository(Persoon::class)->findOneBy(['tiknummer' => 101, 'afdeling' => 1])->getId());
         $form['lijst[start]'] = (new \DateTimeImmutable('-1 hour'))->format('Y-m-d\TH:i');
+        $form['lijst[info]'] = 'Brand in woning';
         $this->client->submit($form);
         self::assertResponseRedirects();
         $crawler = $this->client->followRedirect();

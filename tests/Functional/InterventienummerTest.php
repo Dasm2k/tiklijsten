@@ -33,8 +33,8 @@ final class InterventienummerTest extends WebTestCase
         $verplicht = (new InterventieType())->setAfdeling($afdeling)->setNaam('Brand')->setChauffeurVerplicht(false)->setInterventienummerVerplicht(true);
         $optioneel = (new InterventieType())->setAfdeling($afdeling)->setNaam('Oefening')->setChauffeurVerplicht(false);
         $vreemdType = (new InterventieType())->setAfdeling($vreemd)->setNaam('Ander type');
-        $normaal = (new Aanwezigheidslijst())->setAfdeling($afdeling)->setPost($post)->setNummer(32937)->setVolgnummer(11789)->setStart(new \DateTimeImmutable('-2 hours'))->setGemeente($gemeente)->setBevelvoerder($admin)->setInterventieType($optioneel);
-        $speciaal = (new Aanwezigheidslijst())->setAfdeling($afdeling)->setPost($post)->setNummer(18)->setStart(new \DateTimeImmutable('-2 hours'))->setGemeente($gemeente)->setSpeciaal(true)->setInterventieType($optioneel);
+        $normaal = (new Aanwezigheidslijst())->setAfdeling($afdeling)->setPost($post)->setNummer(32937)->setVolgnummer(11789)->setStart(new \DateTimeImmutable('-2 hours'))->setGemeente($gemeente)->setBevelvoerder($admin)->setInterventieType($optioneel)->setInfo('Oefening');
+        $speciaal = (new Aanwezigheidslijst())->setAfdeling($afdeling)->setPost($post)->setNummer(18)->setStart(new \DateTimeImmutable('-2 hours'))->setGemeente($gemeente)->setSpeciaal(true)->setInterventieType($optioneel)->setInfo('Langdurige interventie');
         $mailinglijst = (new Mailinglijst())->setAfdeling($afdeling)->setNaam('Wacht 1')->setPeloton(1)->addLid($admin);
         foreach (compact('afdeling', 'vreemd', 'post', 'gemeente', 'admin', 'pc', 'verplicht', 'optioneel', 'vreemdType', 'normaal', 'speciaal', 'mailinglijst') as $key => $entity) {
             $em->persist($entity);
@@ -57,6 +57,7 @@ final class InterventienummerTest extends WebTestCase
             'interventieType' => (string) $this->ids[$type],
             'bevelvoerder' => $speciaal ? '' : (string) $this->ids['admin'],
             'interventienummer' => $nummer,
+            'info' => 'Testinterventie',
         ]);
         if ($speciaal) { $data['lijst']['speciaal'] = '1'; }
         // Rechtstreeks posten controleert ook zonder HTML pattern/maxlength/required.

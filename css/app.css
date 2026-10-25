@@ -1,0 +1,126 @@
+/* BrandweerOnline - huisstijl Brandweerzone Rivierenland */
+:root {
+  --bw-rood: #b3151b;
+  --bw-rood-donker: #7f0d12;
+  --bw-goud: #f2b705;
+  --bs-primary: #b3151b;
+  --bs-primary-rgb: 179, 21, 27;
+  --bs-link-color: #9c1218;
+  --bs-link-hover-color: #6d0c10;
+  --bs-link-color-rgb: 156, 18, 24;
+  --bs-link-hover-color-rgb: 109, 12, 16;
+}
+[data-bs-theme="dark"] {
+  --bs-link-color: #ff8a8f;
+  --bs-link-hover-color: #ffb3b6;
+  --bs-link-color-rgb: 255, 138, 143;
+  --bs-link-hover-color-rgb: 255, 179, 182;
+}
+.btn-primary {
+  --bs-btn-bg: var(--bw-rood);
+  --bs-btn-border-color: var(--bw-rood);
+  --bs-btn-hover-bg: var(--bw-rood-donker);
+  --bs-btn-hover-border-color: var(--bw-rood-donker);
+  --bs-btn-active-bg: var(--bw-rood-donker);
+  --bs-btn-active-border-color: var(--bw-rood-donker);
+  --bs-btn-disabled-bg: var(--bw-rood);
+  --bs-btn-disabled-border-color: var(--bw-rood);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--bw-rood);
+  --bs-btn-border-color: var(--bw-rood);
+  --bs-btn-hover-bg: var(--bw-rood);
+  --bs-btn-hover-border-color: var(--bw-rood);
+  --bs-btn-active-bg: var(--bw-rood-donker);
+}
+[data-bs-theme="dark"] .btn-outline-primary { --bs-btn-color: #ff8a8f; }
+.form-check-input:checked { background-color: var(--bw-rood); border-color: var(--bw-rood); }
+.form-control:focus, .form-select:focus { border-color: #e2787c; box-shadow: 0 0 0 .25rem rgba(179, 21, 27, .2); }
+.page-link { color: var(--bs-link-color); }
+.active > .page-link { background-color: var(--bw-rood); border-color: var(--bw-rood); }
+
+.navbar-bw { background: linear-gradient(90deg, var(--bw-rood-donker), var(--bw-rood)); border-bottom: 3px solid var(--bw-goud); }
+.navbar-bw .navbar-brand img { height: 36px; }
+.navbar-bw .nav-link { color: rgba(255,255,255,.85); }
+.navbar-bw .nav-link:hover, .navbar-bw .nav-link.active { color: #fff; }
+
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+.footer-bw { font-size: .85rem; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Tegels op het dashboard */
+.tegel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+  min-height: 110px; padding: 1rem; border-radius: .75rem; text-decoration: none; text-align: center;
+  background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); color: var(--bs-body-color);
+  transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease; }
+.tegel:hover { transform: translateY(-2px); box-shadow: 0 .4rem 1rem rgba(0,0,0,.08); border-color: var(--bw-rood); color: var(--bs-body-color); }
+.tegel .bi { font-size: 1.9rem; color: var(--bw-rood); }
+[data-bs-theme="dark"] .tegel .bi { color: #ff6b71; }
+
+/* Portaal */
+.portaal-hero { background: radial-gradient(circle at 30% 0%, #d7262d 0%, var(--bw-rood-donker) 70%); color: #fff; border-bottom: 4px solid var(--bw-goud); }
+.portaal-hero img { width: 120px; height: 120px; filter: drop-shadow(0 6px 12px rgba(0,0,0,.35)); }
+.afdeling-kaart { border-radius: 1rem; transition: transform .1s ease, box-shadow .1s ease; }
+.afdeling-kaart:hover { transform: translateY(-3px); box-shadow: 0 .75rem 1.5rem rgba(0,0,0,.12); }
+
+/* Tik-pc */
+.tik-invoer { font-size: 1.6rem; letter-spacing: .1em; text-align: center; }
+.tik-teller { font-size: 3rem; font-weight: 700; line-height: 1; color: var(--bw-rood); }
+[data-bs-theme="dark"] .tik-teller { color: #ff6b71; }
+.peloton-lid { display: flex; justify-content: space-between; align-items: center; padding: .25rem .5rem; border-radius: .375rem; }
+.peloton-lid.aanwezig { background: rgba(25, 135, 84, .15); }
+.status-stip { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; }
+.aanwezigheden-lijst > .aanwezigheid { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: .5rem .625rem; background: var(--bs-tertiary-bg); }
+.aanwezigheden-lijst > .aanwezigheid-open { border-inline-start: 3px solid var(--bs-success); }
+.aanwezigheid-inhoud { flex: 1; min-width: 0; }
+.aanwezigheid-kop { display: flex; align-items: center; gap: .4rem; min-width: 0; line-height: 1.4; white-space: nowrap; }
+.aanwezigheid-periode { flex: 0 0 auto; font-size: .65rem; font-weight: 500; }
+.aanwezigheid-naam { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aanwezigheid-naam .btn { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: inherit; line-height: 1.4; }
+.aanwezigheid-chauffeur { flex: 0 1 auto; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aanwezigheid-tijden { display: flex; align-items: center; gap: .35rem; margin-top: .125rem; font-size: .8125rem; line-height: 1.4; white-space: nowrap; }
+.aanwezigheid-acties { flex: 0 0 auto; }
+.aanwezigheid-acties .btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; min-height: 1.75rem; padding: .25rem; }
+@media (max-width: 420px) {
+  .aanwezigheid-tijden { font-size: .75rem; gap: .25rem; }
+  .aanwezigheid-kop { gap: .25rem; font-size: .875rem; }
+  .aanwezigheid-periode { font-size: .6rem; }
+  .aanwezigheid-periode-label { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap; }
+}
+@media (max-width: 360px) {
+  .aanwezigheid-tijden { font-size: .6875rem; gap: .2rem; }
+}
+tr.beroeps td { font-weight: 600; font-style: italic; }
+
+/* Personen kiezen in mailinglijsten */
+.leden-keuze fieldset { break-inside: avoid; }
+.leden-keuze { columns: 3 220px; }
+
+/* Afdrukken */
+.lijst-afdruk-kop { break-inside: avoid; page-break-inside: avoid; }
+.lijst-afdruk-inhoud { min-width: 0; }
+.lijst-afdruk-titel { margin-bottom: 1rem; font-weight: 700; color: #000; }
+.lijst-afdruk .lijst-gegevens {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem 1.5rem; margin: 0; font-size: 1rem; line-height: 1.4;
+}
+.lijst-afdruk .lijst-gegevens > div { width: auto; padding: 0; margin: 0; min-width: 0; }
+.lijst-afdruk .lijst-gegeven-label { color: #222 !important; font-size: .875rem; font-weight: 600; }
+.lijst-afdruk .lijst-gegeven-waarde { color: #000; font-size: 1.125rem; font-weight: 700; overflow-wrap: anywhere; }
+.lijst-afdruk .lijst-gegeven-waarde .text-body-secondary { color: #000 !important; }
+.lijst-afdruk .lijst-gegeven-info { grid-column: 1 / -1; }
+@media screen and (max-width: 575px) {
+  .lijst-afdruk-kop > .card-body { flex-direction: column; }
+  .lijst-afdruk .lijst-gegevens { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .geen-print, .navbar, footer, .alert { display: none !important; }
+  body { font-size: 11pt; }
+  .card { border: 1px solid #000 !important; }
+  a { text-decoration: none; color: #000; }
+  .lijst-afdruk { color: #000; background: #fff; }
+  .lijst-afdruk-titel { font-size: 18pt; }
+  .lijst-afdruk .lijst-gegeven-label { font-size: 10.5pt; }
+  .lijst-afdruk .lijst-gegeven-waarde { font-size: 13pt; }
+}

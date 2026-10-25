@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% macro kop(veld, label, sort, richting, inactief, zoek) %}
+    {% set nieuw = (sort == veld and richting == 'ASC') ? 'DESC' : 'ASC' %}
+    <a class="link-body-emphasis text-decoration-none" href="{{ path('app_personeel_index', {sort: veld, richting: nieuw, inactief: inactief ? 1 : null, zoek: zoek == '' ? null : zoek}|filter(v => v is not null)) }}">{{ label }}{% if sort == veld %} <i class="bi bi-caret-{{ richting == 'ASC' ? 'up' : 'down' }}-fill small"></i>{% endif %}</a>
+{% endmacro %}
+
+{% block body %}
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Personeel <span class="text-body-secondary fs-5">({{ personen|length }} {{ inactief ? 'inactief' : 'actief' }})</span></h1>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="{{ path('app_personeel_index', {sort: sort, richting: richting, inactief: inactief ? null : 1, zoek: zoek == '' ? null : zoek}|filter(v => v is not null)) }}">{{ inactief ? 'Actief personeel' : 'Inactief personeel' }}</a>
+            <a class="btn btn-primary" href="{{ path('app_personeel_nieuw') }}"><i class="bi bi-person-plus"></i> Nieuw personeelslid</a>
+        </div>
+    </div>
+    <form method="get" action="{{ path('app_personeel_index') }}" class="card card-body mb-3" role="search">
+        <label class="form-label" for="personeel-zoek">Personeel zoeken</label>
+        <div class="d-flex flex-wrap gap-2">
+            <input type="search" id="personeel-zoek" name="zoek" value="{{ zoek }}" class="form-control w-auto flex-grow-1" style="min-width:0" maxlength="200" placeholder="Naam, tiknummer, zonenummer of post" aria-describedby="personeel-zoek-help">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <input type="hidden" name="richting" value="{{ richting }}">
+            {% if inactief %}<input type="hidden" name="inactief" value="1">{% endif %}
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Zoeken</button>
+            {% if zoek != '' %}<a class="btn btn-outline-secondary" href="{{ path('app_personeel_index', {sort: sort, richting: richting, inactief: inactief ? 1 : null}|filter(v => v is not null)) }}">Wissen</a>{% endif %}
+        </div>
+        <div id="personeel-zoek-help" class="form-text">Combineer zoekwoorden, bijvoorbeeld een naam en post. Je kunt ook op e-mailadres of rang zoeken.</div>
+    </form>
+    {% import _self as k %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>{{ k.kop('tiknummer', 'Nr.', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('zonenummer', 'Zone nr.', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('rang', 'Rang', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('naam', 'Naam', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('peloton', 'Peloton', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('post', 'Post', sort, richting, inactief, zoek) }}</th>
+                    <th>Voertuigposten</th>
+                    <th>{{ k.kop('email', 'E-mail', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('rol', 'Rol', sort, richting, inactief, zoek) }}</th>
+                    <th>{{ k.kop('gezien', 'Laatst getikt', sort, richting, inactief, zoek) }}</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>
+                {% for p in personen %}
+                    <tr class="{{ p.beroeps ? 'beroeps' }}">
+                        <td class="tabular">{{ p.tiknummer }}</td>
+                        <td class="tabular">{{ p.zonenummer }}</td>
+                        <td>{{ p.rang ? p.rang.kort }}</td>
+                        <td>{{ p.naam }} {{ p.voornaam }}</td>
+                        <td>{{ p.peloton|peloton }}</td>
+                        <td>{{ p.post ? p.post.naam }}</td>
+                        <td>
+                            {% if p.chauffeurPosten is empty %}
+                                <span class="text-body-secondary">{{ p.post ? 'Eigen post (' ~ p.post.naam ~ ')' : 'Geen' }}</span>
+                            {% else %}
+                                {{ p.toegelatenChauffeurPosten|map(post => post.naam)|join(', ') }}
+                            {% endif %}
+                        </td>
+                        <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% endif %}</td>
+                        <td><span class="badge text-bg-light border">{{ p.rol.label }}</span></td>
+                        <td class="tabular small">{{ p.laatstGezien ? p.laatstGezien|date('d/m/Y') }}</td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-link" href="{{ path('app_prestaties', {persoon: p.id}) }}" title="Prestaties"><i class="bi bi-stopwatch"></i></a>
+                            {% if p.rol.gewicht <= app.user.rol.gewicht %}
+                                <a class="btn btn-sm btn-link" href="{{ path('app_personeel_bewerken', {id: p.id}) }}" title="Bewerken"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                            {% if p.id != app.user.id %}
+                                <form method="post" action="{{ path('app_personeel_actief', {id: p.id}) }}" class="d-inline" {% if p.actief %}data-bevestig="{{ p.voornaam }} {{ p.naam }} op inactief zetten?"{% endif %}>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('actief' ~ p.id) }}">
+                                    <button class="btn btn-sm btn-link {{ p.actief ? 'text-danger' : 'text-success' }}" title="{{ p.actief ? 'Op inactief zetten' : 'Opnieuw activeren' }}"><i class="bi bi-{{ p.actief ? 'person-dash' : 'person-check' }}"></i></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="11" class="text-center text-body-secondary py-4">{{ zoek != '' ? 'Geen personeelsleden gevonden voor deze zoekopdracht.' : 'Geen ' ~ (inactief ? 'inactieve' : 'actieve') ~ ' personeelsleden gevonden.' }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-body-secondary mt-2">Vetgedrukt cursief = beroepspersoneel.</p>
+{% endblock %}

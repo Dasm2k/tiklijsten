@@ -61,6 +61,7 @@ class Aanwezigheidslijst
     private ?int $interventienummer = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank(message: 'Vul het infoveld in.', normalizer: 'trim')]
     #[Assert\Length(max: 100)]
     private string $info = '';
 
@@ -72,10 +73,6 @@ class Aanwezigheidslijst
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     #[Assert\When(expression: '!this.isSpeciaal()', constraints: [new Assert\NotNull(message: 'Kies een bevelvoerder.')])]
     private ?Persoon $bevelvoerder = null;
-
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(onDelete: 'SET NULL')]
-    private ?Persoon $centralist = null;
 
     #[ORM\Column]
     private bool $afgesloten = false;
@@ -142,8 +139,6 @@ class Aanwezigheidslijst
     public function setPeloton(int $peloton): static { $this->peloton = $peloton; return $this; }
     public function getBevelvoerder(): ?Persoon { return $this->bevelvoerder; }
     public function setBevelvoerder(?Persoon $p): static { $this->bevelvoerder = $p; return $this; }
-    public function getCentralist(): ?Persoon { return $this->centralist; }
-    public function setCentralist(?Persoon $p): static { $this->centralist = $p; return $this; }
     public function isAfgesloten(): bool { return $this->afgesloten; }
     public function setAfgesloten(bool $afgesloten): static { $this->afgesloten = $afgesloten; return $this; }
     public function isGearchiveerd(): bool { return $this->gearchiveerd; }

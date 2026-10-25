@@ -160,7 +160,7 @@ final class LegacyImporter
             'bw_gemeenten' => ['id', 'naam'],
             'bw_interventies' => ['id', 'naam'],
             'bw_users' => ['id', 'nummer', 'code', 'level', 'ploeg', 'rang', 'naam', 'voornaam', 'email', 'actief'],
-            'bw_aanwezigheidslijsten' => ['id', 'datum', 'uur', 'post', 'gemeente', 'interventie', 'info', 'ploeg', 'bevel', 'centralist', 'afgesloten', 'archief'],
+            'bw_aanwezigheidslijsten' => ['id', 'datum', 'uur', 'post', 'gemeente', 'interventie', 'info', 'ploeg', 'bevel', 'afgesloten', 'archief'],
             'bw_aanwezigen' => ['id', 'interventie', 'user', 'datum', 'uur', 'begindatum', 'beginuur'],
         ];
         $optioneel = [
@@ -359,7 +359,6 @@ final class LegacyImporter
                 'info' => mb_substr(self::tekst($l['info']), 0, 100),
                 'peloton' => max(1, (int) $l['ploeg']),
                 'bevelvoerder_id' => ctype_digit((string) $l['bevel']) ? ($this->persoonPerId[(int) $l['bevel']] ?? null) : null,
-                'centralist_id' => ctype_digit((string) $l['centralist']) ? ($this->persoonPerId[(int) $l['centralist']] ?? null) : null,
                 'afgesloten' => (int) ((int) $l['afgesloten'] > 0),
                 'gearchiveerd' => (int) ((int) $l['archief'] > 0),
             ]);

@@ -21,11 +21,10 @@ class AanwezigheidslijstRepository extends ServiceEntityRepository
     private function basis(Afdeling $afdeling): QueryBuilder
     {
         return $this->createQueryBuilder('l')
-            ->addSelect('g', 't', 'b', 'c', 'po')
+            ->addSelect('g', 't', 'b', 'po')
             ->leftJoin('l.gemeente', 'g')
             ->leftJoin('l.interventieType', 't')
             ->leftJoin('l.bevelvoerder', 'b')
-            ->leftJoin('l.centralist', 'c')
             ->leftJoin('l.post', 'po')
             ->andWhere('l.afdeling = :a')->setParameter('a', $afdeling);
     }

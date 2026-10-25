@@ -98,9 +98,29 @@ tr.beroeps td { font-weight: 600; font-style: italic; }
 .leden-keuze { columns: 3 220px; }
 
 /* Afdrukken */
+.lijst-afdruk-kop { break-inside: avoid; page-break-inside: avoid; }
+.lijst-afdruk-inhoud { min-width: 0; }
+.lijst-afdruk-titel { margin-bottom: 1rem; font-weight: 700; color: #000; }
+.lijst-afdruk .lijst-gegevens {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem 1.5rem; margin: 0; font-size: 1rem; line-height: 1.4;
+}
+.lijst-afdruk .lijst-gegevens > div { width: auto; padding: 0; margin: 0; min-width: 0; }
+.lijst-afdruk .lijst-gegeven-label { color: #222 !important; font-size: .875rem; font-weight: 600; }
+.lijst-afdruk .lijst-gegeven-waarde { color: #000; font-size: 1.125rem; font-weight: 700; overflow-wrap: anywhere; }
+.lijst-afdruk .lijst-gegeven-waarde .text-body-secondary { color: #000 !important; }
+.lijst-afdruk .lijst-gegeven-info { grid-column: 1 / -1; }
+@media screen and (max-width: 575px) {
+  .lijst-afdruk-kop > .card-body { flex-direction: column; }
+  .lijst-afdruk .lijst-gegevens { grid-template-columns: minmax(0, 1fr); }
+}
 @media print {
   .geen-print, .navbar, footer, .alert { display: none !important; }
   body { font-size: 11pt; }
   .card { border: 1px solid #000 !important; }
   a { text-decoration: none; color: #000; }
+  .lijst-afdruk { color: #000; background: #fff; }
+  .lijst-afdruk-titel { font-size: 18pt; }
+  .lijst-afdruk .lijst-gegeven-label { font-size: 10.5pt; }
+  .lijst-afdruk .lijst-gegeven-waarde { font-size: 13pt; }
 }

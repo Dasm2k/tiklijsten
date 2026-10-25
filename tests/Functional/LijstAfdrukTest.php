@@ -197,4 +197,27 @@ final class LijstAfdrukTest extends WebTestCase
         $this->client->request('GET', $this->afdruk('speciaalDicht'));
         self::assertResponseStatusCodeSame(403);
     }
+
+    public function testTweedeBeginuurStaatAlleenInEenEigenVeldAlsHetIsIngevuld(): void
+    {
+        $this->login('admin');
+        foreach (['normaalDicht', 'speciaalDicht'] as $key) {
+            $this->client->request('GET', $this->afdruk($key));
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextNotContains('.lijst-gegevens', '2de beginuur');
+
+            $lijst = $this->em()->find(Aanwezigheidslijst::class, $this->ids[$key]);
+            $begin = $lijst->getStart()->format('d/m/Y H:i');
+            $tweede = $lijst->getStart()->modify('+30 minutes');
+            $lijst->setTweedeStart($tweede);
+            $this->em()->flush();
+            $crawler = $this->client->request('GET', $this->afdruk($key));
+            self::assertResponseIsSuccessful();
+            foreach (['Begin' => $begin, '2de beginuur' => $tweede->format('d/m/Y H:i')] as $label => $waarde) {
+                $veld = $crawler->filter('.lijst-gegevens > div')->reduce(static fn (Crawler $veld) => $label === $veld->filter('.lijst-gegeven-label')->text());
+                self::assertCount(1, $veld);
+                self::assertSame($waarde, $veld->filter('.lijst-gegeven-waarde')->text());
+            }
+        }
+    }
 }

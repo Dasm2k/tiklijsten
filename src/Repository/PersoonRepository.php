@@ -81,7 +81,7 @@ class PersoonRepository extends ServiceEntityRepository implements PasswordUpgra
             ->getQuery()->getResult();
     }
 
-    /** Keuzelijst voor bevelvoerder, centralist, opvolger, ... */
+    /** Keuzelijst voor bevelvoerder, opvolger, ... */
     public function keuzeQuery(Afdeling $afdeling): QueryBuilder
     {
         return $this->personeelQuery($afdeling, true)->orderBy('p.naam', 'ASC')->addOrderBy('p.voornaam', 'ASC');

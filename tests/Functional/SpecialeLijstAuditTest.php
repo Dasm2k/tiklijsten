@@ -65,6 +65,7 @@ final class SpecialeLijstAuditTest extends WebTestCase
             'lijst[speciaal]'=>'1','lijst[start]'=>$this->moment('-1 hour'),
             'lijst[peloton]'=>'1','lijst[gemeente]'=>(string)$gemeente->getId(),
             'lijst[interventieType]'=>(string)$type->getId(),'lijst[bevelvoerder]'=>'',
+            'lijst[info]'=>'Langdurige interventie',
         ]);
         $this->client->submit($form);self::assertResponseRedirects();
         $lijst=$this->em()->getRepository(Aanwezigheidslijst::class)->findOneBy(['nummer'=>3]);
@@ -87,6 +88,7 @@ final class SpecialeLijstAuditTest extends WebTestCase
         $this->client->submit($c->selectButton('Lijst maken')->form([
             'lijst[start]'=>$this->moment('-1 hour'),'lijst[peloton]'=>'1',
             'lijst[gemeente]'=>(string)$gemeente->getId(),'lijst[interventieType]'=>(string)$type->getId(),'lijst[bevelvoerder]'=>'',
+            'lijst[info]'=>'Interventie zonder bevelvoerder',
         ]));
         self::assertResponseStatusCodeSame(422);self::assertSelectorTextContains('body','Kies een bevelvoerder.');
         self::assertSame(2,$this->em()->getRepository(Aanwezigheidslijst::class)->count([]));
