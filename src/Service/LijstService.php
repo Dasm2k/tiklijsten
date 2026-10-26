@@ -58,15 +58,48 @@ final class LijstService
             return true;
         });
         if (!$gesloten) { return 0; }
+        return $this->verzendAfsluitmail($lijst);
+    }
 
+    /** Houdt de mailstatus bij; herverzenden gebeurt expliciet vanuit beheer. */
+    public function verzendAfsluitmail(Aanwezigheidslijst $lijst): int
+    {
+        if (!$lijst->isAfgesloten()) { throw new \LogicException('Een open lijst mag niet worden gemaild.'); }
+        $db = $this->em->getConnection();
+        $bestaand = $db->fetchAssociative('SELECT id, status FROM afsluitmail WHERE lijst_id = ?', [$lijst->getId()]);
+        if ($bestaand && 'verzonden' === $bestaand['status']) { return 0; }
+        if (!$bestaand) {
+            try {
+                $db->insert('afsluitmail', [
+                    'lijst_id' => $lijst->getId(), 'afdeling_id' => $lijst->getAfdeling()->getId(),
+                    'status' => 'in_afwachting', 'pogingen' => 0,
+                    'aangemaakt_op' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                ]);
+            } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+                // Een andere aanvraag heeft de registratie al aangemaakt.
+            }
+        }
+        $db->executeStatement("UPDATE afsluitmail SET status = 'bezig', pogingen = pogingen + 1 WHERE lijst_id = ? AND status IN ('in_afwachting', 'mislukt', 'geen_ontvangers')", [$lijst->getId()]);
         $ontvangers = $this->mailinglijsten->ontvangersAfgeslotenLijst($lijst->getAfdeling(), $lijst->getPeloton());
-        return $this->mailer->stuur(
+        try {
+            $aantal = $this->mailer->stuur(
             $lijst->getAfdeling(),
             $ontvangers,
             sprintf('Aanwezigheidslijst %s - %de peloton %s', $lijst->getLabel(), $lijst->getPeloton(), $lijst->getStart()->format('d/m/Y - H:i')),
             'emails/lijst_afgesloten.html.twig',
             ['lijst' => $lijst, 'tikkingen' => self::gesorteerdeTikkingen($lijst)],
-        );
+            );
+            $db->update('afsluitmail', [
+                'status' => $aantal > 0 ? 'verzonden' : (count($ontvangers) ? 'mislukt' : 'geen_ontvangers'),
+                'ontvangers' => json_encode($ontvangers, JSON_THROW_ON_ERROR),
+                'fout' => $aantal > 0 ? null : (count($ontvangers) ? 'Mailer gaf geen succesvolle verzending terug.' : 'Geen ontvangers gevonden.'),
+                'verzonden_op' => $aantal > 0 ? (new \DateTimeImmutable())->format('Y-m-d H:i:s') : null,
+            ], ['lijst_id' => $lijst->getId()]);
+            return $aantal;
+        } catch (\Throwable $e) {
+            $db->update('afsluitmail', ['status' => 'mislukt', 'fout' => mb_substr($e->getMessage(), 0, 4000)], ['lijst_id' => $lijst->getId()]);
+            return 0;
+        }
     }
 
     public function controleerAfsluiten(Aanwezigheidslijst $lijst, ?Persoon $door = null): void
@@ -90,11 +123,26 @@ final class LijstService
         }
     }
 
-    /** @return \App\Entity\Tikking[] gesorteerd op naam */
+    /** @return \App\Entity\Tikking[] volgens de instellingen van de afdeling */
     public static function gesorteerdeTikkingen(Aanwezigheidslijst $lijst): array
     {
         $tikkingen = $lijst->getTikkingen()->toArray();
-        usort($tikkingen, static fn ($a, $b) => strcasecmp($a->getPersoon()->getVolledigeNaam(), $b->getPersoon()->getVolledigeNaam()));
+        $afdeling = $lijst->getAfdeling();
+        $sortering = $afdeling->getTikkingSortering();
+        $rangFactor = 'asc' === $afdeling->getRangVolgorde() ? 1 : -1;
+        $naamFactor = 'desc' === $afdeling->getNaamVolgorde() ? -1 : 1;
+        usort($tikkingen, static function ($a, $b) use ($sortering, $rangFactor, $naamFactor): int {
+            $pa = $a->getPersoon(); $pb = $b->getPersoon();
+            $rang = (($pa->getRang()?->getNiveau() ?? -1) <=> ($pb->getRang()?->getNiveau() ?? -1)) * $rangFactor;
+            $naam = strcasecmp($pa->getNaam(), $pb->getNaam()) ?: strcasecmp($pa->getVoornaam(), $pb->getVoornaam());
+            $naam *= $naamFactor;
+            $vergelijk = match ($sortering) {
+                'naam' => $naam,
+                'naam_rang' => $naam ?: $rang,
+                default => $rang ?: $naam,
+            };
+            return $vergelijk ?: (($a->getId() ?? 0) <=> ($b->getId() ?? 0));
+        });
         return $tikkingen;
     }
 }

@@ -52,6 +52,18 @@ final class PersoonType extends AbstractType
                 'placeholder' => '—',
                 'required' => false,
             ])
+            ->add('chauffeurPosten', EntityType::class, [
+                'class' => Post::class,
+                'label' => 'Toegelaten voertuigposten (chauffeur)',
+                'choice_label' => 'naam',
+                'query_builder' => fn ($r) => $r->createQueryBuilder('p')->orderBy('p.naam', 'ASC'),
+                'multiple' => true,
+                'expanded' => true,
+                'by_reference' => false,
+                'required' => false,
+                'attr' => ['class' => 'd-flex flex-wrap gap-3'],
+                'help' => 'Geen keuze = voertuigen van de eigen post. Duid één of meer posten aan om daarvan voertuigen te kunnen kiezen als chauffeur. Bij een keuze gelden uitsluitend de aangeduide posten en alleen voertuigen binnen deze afdeling.',
+            ])
             ->add('email', EmailType::class, ['label' => 'E-mail', 'required' => false])
             ->add('beroeps', CheckboxType::class, ['label' => 'Beroepspersoneel', 'required' => false])
             ->add('sessieduur', IntegerType::class, [

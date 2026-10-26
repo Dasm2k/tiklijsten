@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Enum\Rol;
 use App\Repository\PersoonRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -52,6 +54,14 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?Post $post = null;
 
+    /** @var Collection<int, Post> Leeg = de eigen post; anders gelden uitsluitend deze voertuigposten. */
+    #[ORM\ManyToMany(targetEntity: Post::class)]
+    #[ORM\JoinTable(name: 'persoon_chauffeur_post')]
+    #[ORM\JoinColumn(name: 'persoon_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\InverseJoinColumn(name: 'post_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    #[ORM\OrderBy(['naam' => 'ASC'])]
+    private Collection $chauffeurPosten;
+
     #[ORM\Column(length: 64)]
     #[Assert\NotBlank]
     private string $naam = '';
@@ -95,6 +105,11 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?int $totpLastStep = null;
 
+    public function __construct()
+    {
+        $this->chauffeurPosten = new ArrayCollection();
+    }
+
     public function isSuperadmin(): bool { return $this->rol === Rol::SUPERADMIN; }
     public function getTotpSecret(): ?string { return $this->totpSecret; }
     public function setTotpSecret(?string $secret): static { $this->totpSecret = $secret; $this->totpLastStep = null; return $this; }
@@ -117,6 +132,45 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPeloton(?int $peloton): static { $this->peloton = $peloton ?: null; return $this; }
     public function getPost(): ?Post { return $this->post; }
     public function setPost(?Post $post): static { $this->post = $post; return $this; }
+
+    /** @return Collection<int, Post> */
+    public function getChauffeurPosten(): Collection { return $this->chauffeurPosten; }
+    /** @param iterable<Post> $posten */
+    public function setChauffeurPosten(iterable $posten): static
+    {
+        $keuze = [...$posten];
+        foreach ($this->chauffeurPosten->toArray() as $post) {
+            if (!in_array($post, $keuze, true)) { $this->removeChauffeurPost($post); }
+        }
+        foreach ($keuze as $post) { $this->addChauffeurPost($post); }
+        return $this;
+    }
+    public function addChauffeurPost(Post $post): static
+    {
+        if (!$this->chauffeurPosten->contains($post)) { $this->chauffeurPosten->add($post); }
+        return $this;
+    }
+    public function removeChauffeurPost(Post $post): static
+    {
+        $this->chauffeurPosten->removeElement($post);
+        return $this;
+    }
+
+    /** @return Post[] */
+    public function getToegelatenChauffeurPosten(): array
+    {
+        $posten = $this->chauffeurPosten->isEmpty() ? array_filter([$this->post]) : $this->chauffeurPosten->toArray();
+        return array_values(array_filter($posten, static fn (Post $post): bool => !$post->isVerwijderd()));
+    }
+
+    public function magChauffeurVoorPost(?Post $post): bool
+    {
+        if (null === $post || null === $post->getId() || $post->isVerwijderd()) { return false; }
+        foreach ($this->getToegelatenChauffeurPosten() as $toegelaten) {
+            if ($toegelaten->getId() === $post->getId()) { return true; }
+        }
+        return false;
+    }
     public function getNaam(): string { return $this->naam; }
     public function setNaam(string $naam): static { $this->naam = $naam; return $this; }
     public function getVoornaam(): string { return $this->voornaam; }
@@ -168,6 +222,7 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __unserialize(array $data): void
     {
+        $this->chauffeurPosten = new ArrayCollection();
         [$this->id, $this->tiknummer, $this->code, $slug, $rol] = $data;
         $this->rol = Rol::from($rol);
         $this->afdeling = (new Afdeling())->setSlug((string) $slug);

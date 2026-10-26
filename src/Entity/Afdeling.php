@@ -61,6 +61,22 @@ class Afdeling
     #[ORM\Column(options: ['default' => true])]
     private bool $chauffeursActief = true;
 
+    #[ORM\Column(length: 20, options: ['default' => 'rang_naam'])]
+    private string $tikkingSortering = 'rang_naam';
+
+    #[ORM\Column(length: 4, options: ['default' => 'desc'])]
+    private string $rangVolgorde = 'desc';
+
+    #[ORM\Column(length: 4, options: ['default' => 'asc'])]
+    private string $naamVolgorde = 'asc';
+
+    public function getTikkingSortering(): string { return $this->tikkingSortering; }
+    public function setTikkingSortering(string $v): static { $this->tikkingSortering = $v; return $this; }
+    public function getRangVolgorde(): string { return $this->rangVolgorde; }
+    public function setRangVolgorde(string $v): static { $this->rangVolgorde = $v; return $this; }
+    public function getNaamVolgorde(): string { return $this->naamVolgorde; }
+    public function setNaamVolgorde(string $v): static { $this->naamVolgorde = $v; return $this; }
+
     public function isChauffeursActief(): bool { return $this->chauffeursActief; }
     public function setChauffeursActief(bool $actief): static { $this->chauffeursActief = $actief; return $this; }
 

@@ -68,7 +68,8 @@ class PersoonRepository extends ServiceEntityRepository implements PasswordUpgra
     {
         $veld = self::SORTEERVELDEN[$sort] ?? 'p.naam';
         $richting = 'DESC' === strtoupper($richting) ? 'DESC' : 'ASC';
-        $qb = $this->personeelQuery($afdeling, $actief);
+        $qb = $this->personeelQuery($afdeling, $actief)
+            ->addSelect('cp')->leftJoin('p.chauffeurPosten', 'cp');
         // Elk zoekwoord moet in minstens één veld voorkomen; de volgorde van voor- en achternaam is vrij.
         foreach (preg_split('/\s+/u', mb_strtolower(trim(mb_substr($zoek, 0, 200))), -1, PREG_SPLIT_NO_EMPTY) as $index => $woord) {
             $parameter = 'zoek'.$index;

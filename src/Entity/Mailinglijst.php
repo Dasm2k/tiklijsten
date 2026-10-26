@@ -73,6 +73,25 @@ class Mailinglijst
     /** @return Collection<int, Persoon> */
     public function getLeden(): Collection { return $this->leden; }
 
+    /** @param iterable<Persoon> $leden */
+    public function setLeden(iterable $leden): static
+    {
+        $gewenst = [];
+        foreach ($leden as $lid) {
+            $gewenst[] = $lid;
+        }
+
+        foreach ($this->leden->toArray() as $lid) {
+            if (!in_array($lid, $gewenst, true)) {
+                $this->removeLid($lid);
+            }
+        }
+        foreach ($gewenst as $lid) {
+            $this->addLid($lid);
+        }
+        return $this;
+    }
+
     public function addLid(Persoon $p): static
     {
         if (!$this->leden->contains($p)) {

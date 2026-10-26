@@ -82,9 +82,8 @@ final class TikController extends BaseController
                 $voertuig = ctype_digit($waarde) ? $em->find(\App\Entity\Voertuig::class, (int) $waarde) : null;
                 if (!$voertuig || !$voertuig->isActief()
                     || $voertuig->getAfdeling()?->getId() !== $lijst->getAfdeling()->getId()
-                    || !$t->getPersoon()->getPost()
-                    || $voertuig->getPost()?->getId() !== $t->getPersoon()->getPost()->getId()) {
-                    throw $this->createAccessDeniedException('Kies een actief voertuig van de post van dit personeelslid.');
+                    || !$t->getPersoon()->magChauffeurVoorPost($voertuig->getPost())) {
+                    throw $this->createAccessDeniedException('Kies een actief voertuig van een toegelaten voertuigpost binnen deze afdeling.');
                 }
             }
             if ($voertuig?->getId() !== $t->getChauffeurVoertuig()?->getId()) {

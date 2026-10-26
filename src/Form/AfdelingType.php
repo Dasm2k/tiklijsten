@@ -6,6 +6,7 @@ use App\Entity\Afdeling;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -26,6 +27,9 @@ final class AfdelingType extends AbstractType
                 'label' => 'Chauffeursregistratie actief', 'required' => false,
                 'help' => 'Aan: een chauffeur is verplicht vóór afsluiten. Uit: geen chauffeurkeuze of verplichting. Dit is de standaard voor alle posten van deze afdeling; hieronder kun je per post afwijken.',
             ])
+            ->add('tikkingSortering', ChoiceType::class, ['label' => 'Aanwezigheden sorteren op', 'choices' => ['Rang, daarna naam' => 'rang_naam', 'Naam, daarna rang' => 'naam_rang', 'Alleen naam' => 'naam']])
+            ->add('rangVolgorde', ChoiceType::class, ['label' => 'Rangvolgorde', 'choices' => ['Hoogste rang eerst' => 'desc', 'Laagste rang eerst' => 'asc']])
+            ->add('naamVolgorde', ChoiceType::class, ['label' => 'Naamvolgorde', 'choices' => ['A tot Z' => 'asc', 'Z tot A' => 'desc']])
             ->add('kadaverOntvangers', TextType::class, [
                 'label' => 'Ontvangers meldingen kadaver',
                 'required' => false,

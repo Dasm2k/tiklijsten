@@ -30,11 +30,25 @@ final class InstellingenController extends BaseController
             return $this->redirectToRoute('app_instellingen');
         }
         return $this->render('instellingen/index.html.twig', [
+            'mail_log' => $em->getConnection()->fetchAllAssociative('SELECT m.*, l.nummer FROM afsluitmail m JOIN aanwezigheidslijst l ON l.id = m.lijst_id WHERE m.afdeling_id = ? ORDER BY m.id DESC LIMIT 50', [$afdeling->getId()]),
             'chauffeur_posten' => $em->getRepository(\App\Entity\Post::class)->findBy([], ['naam' => 'ASC']),
             'chauffeur_instellingen' => $this->chauffeurInstellingen($em),
             'form' => $form,
             'accounts' => $personen->findBy(['afdeling' => $afdeling, 'systeemaccount' => true], ['tiknummer' => 'ASC']),
         ], new Response(status: $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/afsluitmail/{id}/opnieuw', name: 'app_instellingen_mail_opnieuw', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function mailOpnieuw(int $id, Request $request, EntityManagerInterface $em, \App\Service\LijstService $service): Response
+    {
+        if (!$this->csrfOk($request, 'afsluitmail'.$id)) { throw $this->createAccessDeniedException(); }
+        $rij = $em->getConnection()->fetchAssociative('SELECT * FROM afsluitmail WHERE id = ? AND afdeling_id = ?', [$id, $this->afdeling()->getId()]);
+        if (!$rij || 'verzonden' === $rij['status']) { throw $this->createNotFoundException(); }
+        $lijst = $em->find(\App\Entity\Aanwezigheidslijst::class, (int) $rij['lijst_id']);
+        if (!$lijst || $lijst->getAfdeling()->getId() !== $this->afdeling()->getId()) { throw $this->createNotFoundException(); }
+        $aantal = $service->verzendAfsluitmail($lijst);
+        $this->addFlash($aantal > 0 ? 'success' : 'warning', $aantal > 0 ? 'Mail aan mailserver aangeboden.' : 'Mail niet verzonden. Controleer het logboek.');
+        return $this->redirectToRoute('app_instellingen');
     }
 
     private function chauffeurInstellingen(EntityManagerInterface $em): array
