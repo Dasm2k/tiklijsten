@@ -51,20 +51,22 @@ final class TikService
         return $persoon;
     }
 
-    private function controleerPersoon(Afdeling $afdeling, string $tiknummer, string $code, bool $actiefVereist = false): Persoon
+    private function controleerPersoon(Afdeling $afdeling, string $tiknummer, string $code, bool $geenTikPc = false): Persoon
     {
         $tiknummer = trim($tiknummer);
         if (!ctype_digit($tiknummer) || '' === $code) {
             throw new TikFout('Geef je tiknummer en code in.');
         }
         $persoon = $this->personen->findOneInAfdeling($afdeling, (int) $tiknummer);
-        if (!$persoon || $persoon->isSysteemaccount() || ($actiefVereist && $persoon->isTikPc())) {
+        if (!$persoon || $persoon->isSysteemaccount() || ($geenTikPc && $persoon->isTikPc())) {
             throw new TikFout('Tiknummer bestaat niet.');
         }
-        if ($actiefVereist && !$persoon->isActief()) {
+        // Een inactief account blijft inactief: intikken heractiveert niemand.
+        if (!$persoon->isActief()) {
             throw new TikFout('Dit account is niet actief. Neem contact op met de beheerder.');
         }
         $this->controleerCode($persoon, $code, 'Code niet juist.');
+        // Codes uit de oude toepassing (md5) worden bij de eerste geslaagde tikking omgezet naar bcrypt.
         if ($this->hasher->needsRehash($persoon)) {
             $persoon->setCode($this->hasher->hashPassword($persoon, $code));
         }
@@ -95,8 +97,7 @@ final class TikService
         }
         $lijst->addTikking($tikking);
 
-        // Zoals in de oude toepassing (post Boom): wie tikt is opnieuw actief.
-        $persoon->setActief(true)->setLaatstGezien($nu);
+        $persoon->setLaatstGezien($nu);
 
         $this->em->persist($tikking);
         $this->em->flush();

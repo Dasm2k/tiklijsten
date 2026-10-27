@@ -238,4 +238,28 @@ final class TikFlowTest extends WebTestCase
         $this->expectExceptionMessage('Te veel foute codes');
         $tik->tikIn($lijst, '101', '4321');
     }
+
+    public function testInactiefPersoneelKanNietIntikkenEnBlijftInactief(): void
+    {
+        $tik = static::getContainer()->get(\App\Service\TikService::class);
+        $afdeling = $this->em->getRepository(Afdeling::class)->findOneBy(['slug' => 'boom-rumst']);
+        $jan = $this->em->getRepository(Persoon::class)->findOneBy(['tiknummer' => 101, 'afdeling' => $afdeling]);
+        $jan->setActief(false);
+        $lijst = (new Aanwezigheidslijst())->setAfdeling($afdeling)
+            ->setStart(new \DateTimeImmutable('-1 hour'))->setNummer(1)->setPeloton(1);
+        $this->em->persist($lijst);
+        $this->em->flush();
+
+        try {
+            $tik->tikIn($lijst, '101', '4321');
+            self::fail('Een inactief personeelslid mag niet kunnen intikken.');
+        } catch (\App\Service\TikFout $e) {
+            self::assertStringContainsString('niet actief', $e->getMessage());
+        }
+        $this->em->clear();
+        $jan = $this->em->find(Persoon::class, $jan->getId());
+        self::assertFalse($jan->isActief(), 'Intikken heractiveert geen inactief account.');
+        self::assertSame(md5('4321'), $jan->getCode(), 'Geen code-omzetting voor een geweigerd account.');
+        self::assertSame(0, $this->em->getRepository(Aanwezigheidslijst::class)->find($lijst->getId())->getTikkingen()->count());
+    }
 }
