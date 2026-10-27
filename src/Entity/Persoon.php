@@ -59,7 +59,7 @@ class Persoon implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinTable(name: 'persoon_chauffeur_post')]
     #[ORM\JoinColumn(name: 'persoon_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     #[ORM\InverseJoinColumn(name: 'post_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    #[ORM\OrderBy(['naam' => 'ASC'])]
+    #[ORM\OrderBy(['naam' => \SortDirection::Ascending])]
     private Collection $chauffeurPosten;
 
     #[ORM\Column(length: 64)]

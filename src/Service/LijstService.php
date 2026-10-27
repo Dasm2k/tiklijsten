@@ -39,10 +39,13 @@ final class LijstService
     public function opslaanNieuw(Aanwezigheidslijst $lijst): void
     {
         $afdeling = $lijst->getAfdeling();
-        $lijst->setNummer($this->lijsten->volgendNummer($afdeling));
-        $lijst->setVolgnummer($this->lijsten->volgendVolgnummer($afdeling, $lijst->getPeloton()));
-        $this->em->persist($lijst);
-        $this->em->flush();
+        // Lock op de afdeling: twee tik-pc's die tegelijk een lijst maken krijgen elk een eigen nummer.
+        $this->em->wrapInTransaction(function () use ($lijst, $afdeling): void {
+            $this->em->getConnection()->executeQuery('SELECT id FROM afdeling WHERE id = ? FOR UPDATE', [$afdeling->getId()]);
+            $lijst->setNummer($this->lijsten->volgendNummer($afdeling));
+            $lijst->setVolgnummer($this->lijsten->volgendVolgnummer($afdeling, $lijst->getPeloton()));
+            $this->em->persist($lijst);
+        });
     }
 
     /** Lijst afsluiten en de aanwezigheden mailen naar de mailinglijst(en) van het peloton. */
@@ -79,7 +82,14 @@ final class LijstService
                 // Een andere aanvraag heeft de registratie al aangemaakt.
             }
         }
-        $db->executeStatement("UPDATE afsluitmail SET status = 'bezig', pogingen = pogingen + 1 WHERE lijst_id = ? AND status IN ('in_afwachting', 'mislukt', 'geen_ontvangers')", [$lijst->getId()]);
+        // Claim de verzending atomisch: enkel de aanvraag die de rij omzet, verstuurt de mail.
+        // Een verzending die langer dan 10 minuten 'bezig' blijft (bv. afgebroken proces) mag opnieuw.
+        $nu = new \DateTimeImmutable();
+        $geclaimd = $db->executeStatement(
+            "UPDATE afsluitmail SET status = 'bezig', bezig_sinds = ?, pogingen = pogingen + 1 WHERE lijst_id = ? AND (status IN ('in_afwachting', 'mislukt', 'geen_ontvangers') OR (status = 'bezig' AND (bezig_sinds IS NULL OR bezig_sinds < ?)))",
+            [$nu->format('Y-m-d H:i:s'), $lijst->getId(), $nu->modify('-10 minutes')->format('Y-m-d H:i:s')],
+        );
+        if (1 !== $geclaimd) { return 0; }
         $ontvangers = $this->mailinglijsten->ontvangersAfgeslotenLijst($lijst->getAfdeling(), $lijst->getPeloton());
         try {
             $aantal = $this->mailer->stuur(

@@ -124,6 +124,24 @@ final class PersoneelZoekTest extends WebTestCase
         self::assertSelectorTextNotContains('tbody', 'dave.test@example.org');
     }
 
+    public function testHogereRolKanNietOpInactiefGezetWorden(): void
+    {
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $baas = (new Persoon())->setAfdeling($em->find(Afdeling::class, $this->ids['afdeling']))->setTiknummer(106)->setNaam('Baas')->setVoornaam('Bea')->setCode('unused');
+        $em->persist($baas);
+        $em->flush();
+        // Formulier ophalen zolang de rol nog lager is, daarna de rol verhogen en toch indienen.
+        $crawler = $this->client->request('GET', '/personeel');
+        $form = $crawler->filter(sprintf('form[action="/personeel/%d/actief"]', $baas->getId()))->form();
+        $em->getConnection()->executeStatement('UPDATE persoon SET rol = ? WHERE id = ?', [Rol::BEHEER->value, $baas->getId()]);
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(403);
+        self::assertTrue((bool) $em->getConnection()->fetchOne('SELECT actief FROM persoon WHERE id = ?', [$baas->getId()]));
+        $crawler = $this->client->request('GET', '/personeel');
+        self::assertCount(0, $crawler->filter(sprintf('form[action="/personeel/%d/actief"]', $baas->getId())));
+        self::assertCount(1, $crawler->filter(sprintf('form[action="/personeel/%d/actief"]', $this->ids['dave'])));
+    }
+
     public function testZoekfilterGeeftGeenPersoneelstoegangAanLidOfTikPc(): void
     {
         foreach (['dave', 'systeem'] as $key) {

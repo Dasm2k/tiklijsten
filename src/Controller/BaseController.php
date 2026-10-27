@@ -41,6 +41,13 @@ abstract class BaseController extends AbstractController
         return $this->isCsrfTokenValid($id, (string) $request->request->get('_token'));
     }
 
+    /** De vorige pagina (Referer), maar enkel binnen deze toepassing; anders de fallback. */
+    protected function vorigePagina(Request $request, string $fallback): string
+    {
+        $referer = (string) $request->headers->get('referer');
+        return str_starts_with($referer, $request->getSchemeAndHttpHost().'/') ? $referer : $fallback;
+    }
+
     protected function pagina(Request $request): int
     {
         return max(1, $request->query->getInt('p', 1));

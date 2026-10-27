@@ -65,7 +65,8 @@ class AanwezigheidslijstRepository extends ServiceEntityRepository
                 $qb->andWhere(str_starts_with($zoek, '#') ? 'COALESCE(l.volgnummer, l.nummer) = :nr' : '(COALESCE(l.volgnummer, l.nummer) = :nr OR l.interventienummer = :nr)')
                     ->setParameter('nr', (int) ltrim($zoek, '#'));
             } else {
-                $qb->andWhere('g.naam LIKE :z OR t.naam LIKE :z OR l.info LIKE :z')->setParameter('z', '%'.$zoek.'%');
+                $qb->andWhere("g.naam LIKE :z ESCAPE '!' OR t.naam LIKE :z ESCAPE '!' OR l.info LIKE :z ESCAPE '!'")
+                    ->setParameter('z', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $zoek).'%');
             }
         }
         return new Paginator($qb->getQuery(), fetchJoinCollection: false);

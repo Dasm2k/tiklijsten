@@ -66,7 +66,7 @@
                             {% if p.rol.gewicht <= app.user.rol.gewicht %}
                                 <a class="btn btn-sm btn-link" href="{{ path('app_personeel_bewerken', {id: p.id}) }}" title="Bewerken"><i class="bi bi-pencil"></i></a>
                             {% endif %}
-                            {% if p.id != app.user.id %}
+                            {% if p.id != app.user.id and p.rol.gewicht <= app.user.rol.gewicht %}
                                 <form method="post" action="{{ path('app_personeel_actief', {id: p.id}) }}" class="d-inline" {% if p.actief %}data-bevestig="{{ p.voornaam }} {{ p.naam }} op inactief zetten?"{% endif %}>
                                     <input type="hidden" name="_token" value="{{ csrf_token('actief' ~ p.id) }}">
                                     <button class="btn btn-sm btn-link {{ p.actief ? 'text-danger' : 'text-success' }}" title="{{ p.actief ? 'Op inactief zetten' : 'Opnieuw activeren' }}"><i class="bi bi-{{ p.actief ? 'person-dash' : 'person-check' }}"></i></button>

@@ -14,7 +14,12 @@ final class ConsoleHandelingSubscriber implements EventSubscriberInterface
     public function terminate(ConsoleTerminateEvent $event): void
     {
         // No command arguments: they may contain credentials or a database URL.
-        if (!$this->db->createSchemaManager()->tablesExist(['handeling'])) { return; }
-        $this->log->schrijf($this->db,$this->log->data('console','Console',null,[],['opdracht'=>$event->getCommand()?->getName(),'exitcode'=>$event->getExitCode()]));
+        // Zonder bereikbare database (build, cache:clear, lint) mag loggen het commando niet laten falen.
+        try {
+            if (!$this->db->createSchemaManager()->tablesExist(['handeling'])) { return; }
+            $this->log->schrijf($this->db,$this->log->data('console','Console',null,[],['opdracht'=>$event->getCommand()?->getName(),'exitcode'=>$event->getExitCode()]));
+        } catch (\Doctrine\DBAL\Exception) {
+            return;
+        }
     }
 }

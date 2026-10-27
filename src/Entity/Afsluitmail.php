@@ -41,6 +41,10 @@ class Afsluitmail
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $verzondenOp = null;
 
+    /** Tijdstip waarop de lopende verzending geclaimd werd; een oude claim mag opnieuw. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $bezigSinds = null;
+
     public function __construct() { $this->aangemaaktOp = new \DateTimeImmutable(); }
 
     public function getId(): ?int { return $this->id; }
@@ -52,4 +56,5 @@ class Afsluitmail
     public function getFout(): ?string { return $this->fout; }
     public function getAangemaaktOp(): \DateTimeImmutable { return $this->aangemaaktOp; }
     public function getVerzondenOp(): ?\DateTimeImmutable { return $this->verzondenOp; }
+    public function getBezigSinds(): ?\DateTimeImmutable { return $this->bezigSinds; }
 }

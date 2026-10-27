@@ -73,7 +73,8 @@ final class PersoneelController extends BaseController
     public function actief(int $id, Request $request, PersoonRepository $personen, EntityManagerInterface $em): Response
     {
         $persoon = $this->eigen($personen->find($id));
-        if ($persoon->isSysteemaccount() || !$this->csrfOk($request, 'actief'.$id) || $persoon->getId() === $this->persoon()->getId()) {
+        if ($persoon->isSysteemaccount() || !$this->csrfOk($request, 'actief'.$id) || $persoon->getId() === $this->persoon()->getId()
+            || $persoon->getRol()->gewicht() > $this->persoon()->getRol()->gewicht()) {
             throw $this->createAccessDeniedException();
         }
         $persoon->setActief(!$persoon->isActief());

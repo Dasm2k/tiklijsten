@@ -133,7 +133,7 @@ final class LijstController extends BaseController
             }
             $this->addFlash('success', sprintf('Lijst %s is %s.', $lijst->getLabel(), $lijst->isAfgesloten() ? 'gesloten' : 'opnieuw geopend'));
         }
-        return $this->redirect($request->headers->get('referer') ?: $this->generateUrl('app_lijst_index'));
+        return $this->redirect($this->vorigePagina($request, $this->generateUrl('app_lijst_index')));
     }
 
     #[Route('/{id}/archiveren', name: 'app_lijst_archiveren', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -154,7 +154,7 @@ final class LijstController extends BaseController
             }
             $this->addFlash('success', 'Lijst '.$lijst->getLabel().' is gearchiveerd.');
         }
-        return $this->redirect($request->headers->get('referer') ?: $this->generateUrl('app_lijst_index'));
+        return $this->redirect($this->vorigePagina($request, $this->generateUrl('app_lijst_index')));
     }
 
     /** Afdrukversie met controlevragen; ook beschikbaar voor de tik-pc. */
@@ -167,7 +167,7 @@ final class LijstController extends BaseController
             : 'Sluit de lijst eerst af voordat je ze afdrukt.');
         $terug = 'tik' === $request->query->get('terug') && $this->isGranted('ROLE_POST')
             ? $this->generateUrl('app_tik_index')
-            : ($request->headers->get('referer') ?: $this->generateUrl('app_dashboard'));
+            : $this->vorigePagina($request, $this->generateUrl('app_dashboard'));
 
         return $this->render('lijst/afdrukken.html.twig', [
             'lijst' => $lijst,

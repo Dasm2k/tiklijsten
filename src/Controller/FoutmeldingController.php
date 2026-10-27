@@ -27,7 +27,7 @@ final class FoutmeldingController extends BaseController
     public function index(Request $request, FoutmeldingRepository $fouten): Response
     {
         $this->moduleActief();
-        $fouten->ruimOp(new \DateTimeImmutable('-1 day'));
+        // Opruimen van afgesloten meldingen gebeurt via app:foutmeldingen:opruimen (cron).
         // Wie foutmeldingen opvolgt, ziet standaard enkel de eigen meldingen (zoals vroeger de "filter").
         $kanFilteren = $this->isGranted('ROLE_FOUTEN');
         $enkelEigen = $kanFilteren && !$request->query->getBoolean('alle');
