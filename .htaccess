@@ -1,0 +1,4 @@
+# Veiligheidsnet: de document root hoort op public/ te staan.
+# Wijst de webserver per vergissing naar deze projectmap, dan wordt alles geweigerd
+# in plaats van .env.local, config/ of var/ bloot te geven.
+Require all denied
