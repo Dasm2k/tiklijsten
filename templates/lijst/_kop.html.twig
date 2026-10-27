@@ -1,6 +1,7 @@
 {% import '_macros.html.twig' as m %}
 <div class="row g-2 small lijst-gegevens">
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary lijst-gegeven-label">Post</span><br><span class="lijst-gegeven-waarde">{{ lijst.post ? lijst.post.naam : '-' }}</span></div>
+    <div class="col-sm-6 col-lg-3"><span class="text-body-secondary lijst-gegeven-label">Peloton</span><br><span class="lijst-gegeven-waarde">{{ lijst.peloton|peloton }}</span></div>
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary lijst-gegeven-label">Begin</span><br><span class="lijst-gegeven-waarde tabular">{{ lijst.start|date('d/m/Y H:i') }}</span></div>
     {% if lijst.tweedeStart %}<div class="col-sm-6 col-lg-3"><span class="text-body-secondary lijst-gegeven-label">2de beginuur</span><br><span class="lijst-gegeven-waarde tabular">{{ lijst.tweedeStart|date('d/m/Y H:i') }}</span></div>{% endif %}
     <div class="col-sm-6 col-lg-3"><span class="text-body-secondary lijst-gegeven-label">Interventie</span><br><span class="lijst-gegeven-waarde">{{ lijst.interventieType ? lijst.interventieType.naam }} te {{ lijst.gemeente ? lijst.gemeente.naam }}</span></div>

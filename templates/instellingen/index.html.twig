@@ -9,6 +9,13 @@
                 <button class="btn btn-primary"><i class="bi bi-save"></i> Opslaan</button>
                 {{ form_end(form) }}
             </div></div>
+            <div class="card mt-4"><div class="card-header fw-semibold">Afsluitmails (laatste 50)</div><div class="card-body table-responsive">
+                <table class="table table-sm"><thead><tr><th>Lijst</th><th>Status</th><th>Pogingen</th><th>Fout</th><th></th></tr></thead><tbody>
+                {% for m in mail_log %}<tr><td>{{ m.nummer }}</td><td>{{ m.status }}</td><td>{{ m.pogingen }}</td><td class="small">{{ m.fout }}</td><td>
+                {% if m.status != 'verzonden' %}<form method="post" action="{{ path('app_instellingen_mail_opnieuw', {id: m.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('afsluitmail' ~ m.id) }}"><button class="btn btn-sm btn-outline-primary">Opnieuw</button></form>{% endif %}
+                </td></tr>{% else %}<tr><td colspan="5">Nog geen verzendregistraties.</td></tr>{% endfor %}
+                </tbody></table><p class="small text-muted">Verzonden betekent aan de mailserver aangeboden, niet noodzakelijk afgeleverd.</p>
+            </div></div>
             <div class="card mt-4"><div class="card-header fw-semibold">Chauffeursregistratie per post</div><div class="card-body">
                 <p>Standaard voor {{ huidige_afdeling().naam }}: <strong>{{ huidige_afdeling().chauffeursActief ? 'Aan' : 'Uit' }}</strong>. Je kunt hieronder per post afwijken. De instelling geldt voor de post van de lijst en alleen binnen deze afdeling.</p>
                 <form method="post" action="{{ path('app_instellingen_chauffeurs') }}">

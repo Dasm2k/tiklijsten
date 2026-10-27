@@ -138,17 +138,21 @@
                         <div class="modal-header"><h2 class="modal-title fs-5" id="chauffeurTitel{{ t.id }}">Chauffeur · {{ t.persoon.volledigeNaam }}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button></div>
                         <div class="modal-body">
                             <p>Post: {{ t.persoon.post ? t.persoon.post.naam : 'Niet ingesteld voor dit personeelslid' }}</p>
+                            <p>Toegelaten voertuigposten: {{ t.persoon.toegelatenChauffeurPosten|map(post => post.naam)|join(', ') ?: 'Geen' }}</p>
                             {% if t.chauffeurVermelding %}<p>Huidige registratie: {{ t.chauffeurVermelding }}</p>{% endif %}
                             <label class="form-label" for="voertuig{{ t.id }}">Bestuurd voertuig</label>
                             <select class="form-select" id="voertuig{{ t.id }}" name="voertuig">
                                 <option value="">Geen chauffeur</option>
                                 {% if t.chauffeurVoertuig %}<option value="__behouden" selected>Huidige registratie behouden: {{ t.chauffeurVermelding }}</option>{% endif %}
+                                {% set aantalVoertuigen = 0 %}
                                 {% for v in chauffeur_voertuigen %}
-                                    {% if t.persoon.post and v.post and v.post.id == t.persoon.post.id %}
-                                        <option value="{{ v.id }}">{{ v.chauffeurLabel }}</option>
+                                    {% if t.persoon.magChauffeurVoorPost(v.post) %}
+                                        {% set aantalVoertuigen = aantalVoertuigen + 1 %}
+                                        <option value="{{ v.id }}">{{ v.post.naam }} · {{ v.chauffeurLabel }}</option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
+                            {% if aantalVoertuigen == 0 %}<p class="small text-body-secondary mt-2">Geen actieve voertuigen voor de toegelaten posten in deze afdeling.</p>{% endif %}
                             {% if t.chauffeurVoertuig and not t.chauffeurVoertuig.actief %}<p class="small mt-2">Het geregistreerde voertuig is niet meer actief. Sluit dit venster om de registratie te behouden, of kies een vervanging.</p>{% endif %}
                             <input type="hidden" name="_token" value="{{ csrf_token('chauffeur' ~ t.id) }}">
                         </div>

@@ -36,6 +36,7 @@
                     <th>{{ k.kop('naam', 'Naam', sort, richting, inactief, zoek) }}</th>
                     <th>{{ k.kop('peloton', 'Peloton', sort, richting, inactief, zoek) }}</th>
                     <th>{{ k.kop('post', 'Post', sort, richting, inactief, zoek) }}</th>
+                    <th>Voertuigposten</th>
                     <th>{{ k.kop('email', 'E-mail', sort, richting, inactief, zoek) }}</th>
                     <th>{{ k.kop('rol', 'Rol', sort, richting, inactief, zoek) }}</th>
                     <th>{{ k.kop('gezien', 'Laatst getikt', sort, richting, inactief, zoek) }}</th>
@@ -50,6 +51,13 @@
                         <td>{{ p.naam }} {{ p.voornaam }}</td>
                         <td>{{ p.peloton|peloton }}</td>
                         <td>{{ p.post ? p.post.naam }}</td>
+                        <td>
+                            {% if p.chauffeurPosten is empty %}
+                                <span class="text-body-secondary">{{ p.post ? 'Eigen post (' ~ p.post.naam ~ ')' : 'Geen' }}</span>
+                            {% else %}
+                                {{ p.toegelatenChauffeurPosten|map(post => post.naam)|join(', ') }}
+                            {% endif %}
+                        </td>
                         <td>{% if p.email %}<a href="mailto:{{ p.email }}">{{ p.email }}</a>{% endif %}</td>
                         <td><span class="badge text-bg-light border">{{ p.rol.label }}</span></td>
                         <td class="tabular small">{{ p.laatstGezien ? p.laatstGezien|date('d/m/Y') }}</td>
@@ -67,7 +75,7 @@
                         </td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="10" class="text-center text-body-secondary py-4">{{ zoek != '' ? 'Geen personeelsleden gevonden voor deze zoekopdracht.' : 'Geen ' ~ (inactief ? 'inactieve' : 'actieve') ~ ' personeelsleden gevonden.' }}</td></tr>
+                    <tr><td colspan="11" class="text-center text-body-secondary py-4">{{ zoek != '' ? 'Geen personeelsleden gevonden voor deze zoekopdracht.' : 'Geen ' ~ (inactief ? 'inactieve' : 'actieve') ~ ' personeelsleden gevonden.' }}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
